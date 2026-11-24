@@ -777,7 +777,7 @@ function pcbTexture(){return txtTex(1024,1280,(x,W,H)=>{
 function buildPC(){
  const root=new THREE.Group();const parts={};const rgbMats=[];
  const rgb=()=>{const m=new THREE.MeshStandardMaterial({color:"#000",emissive:"#5aa0ff",emissiveIntensity:1.3,roughness:.4});rgbMats.push(m);return m};
- const part=(key,info,delta,stage,obj)=>{const g=obj||new THREE.Group();g.userData.part=key;g.userData.info=info||key;g.userData.base=g.position.clone();g.userData.delta=new THREE.Vector3(...delta);g.userData.stage=stage;root.add(g);(parts[key]=parts[key]||[]).push(g);return g};
+ const part=(key,info,delta,stage,obj)=>{const g=obj||new THREE.Group();g.userData.part=key;g.userData.info=info||key;g.userData.base=g.position.clone();g.userData.delta=new THREE.Vector3(...delta);g.userData.stage=stage;g.userData.off=new THREE.Vector3();root.add(g);(parts[key]=parts[key]||[]).push(g);return g};
  /* корпус */
  const caseM=SM("#2a2f38",{metalness:.55,roughness:.38});const caseIn=SM("#1d2129",{metalness:.3,roughness:.6});
  const CASE=part("case","case",[0,0,0],[0,1]);
@@ -911,15 +911,31 @@ function startPcLab(host){
  let fly=null;function flyTo(c){const dir=cam.position.clone().sub(ctl.target).normalize();const dist=Math.max(1.8,Math.min(4,cam.position.distanceTo(ctl.target)));fly={t0:ctl.target.clone(),t1:c,p0:cam.position.clone(),p1:c.clone().add(dir.multiplyScalar(dist)),k:0}}
  /* меңзер */
  const ray=new THREE.Raycaster(),mp=new THREE.Vector2();let down=null;
- const hit=e=>{const rc=r.domElement.getBoundingClientRect();mp.set((e.clientX-rc.left)/rc.width*2-1,-(e.clientY-rc.top)/rc.height*2+1);ray.setFromCamera(mp,cam);const hs=ray.intersectObjects(pick,false);for(const h of hs){const k=partOf(h.object);if(!k)continue;if(k==="glass"&&PC.parts.glass[0].visible&&explode<.2&&glassOn)continue;if(k==="case"&&hs.length>1)continue;return k}return hs.length?partOf(hs[0].object):null};
- r.domElement.addEventListener("pointerdown",e=>{down=[e.clientX,e.clientY]});
- r.domElement.addEventListener("pointerup",e=>{if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])<6){const k=hit(e);if(k)select(k,false)}down=null});
- r.domElement.addEventListener("pointermove",e=>{if(e.pointerType!=="mouse")return;const k=hit(e);if(k&&!game){tip.textContent=PC_INFO[k].n;tip.style.transform=`translate(${e.offsetX+14}px,${e.offsetY+14}px)`;tip.classList.add("on");r.domElement.style.cursor="pointer"}else{tip.classList.remove("on");r.domElement.style.cursor=""}});
+ const groupOf=o=>{while(o&&!o.userData.part)o=o.parent;return o};
+ const rayAt=(cx,cy)=>{const rc=r.domElement.getBoundingClientRect();mp.set((cx-rc.left)/rc.width*2-1,-(cy-rc.top)/rc.height*2+1);ray.setFromCamera(mp,cam)};
+ const hitAt=(cx,cy)=>{rayAt(cx,cy);const hs=ray.intersectObjects(pick,false).filter(h=>{let o=h.object;while(o){if(!o.visible)return false;o=o.parent}return true});
+  for(const h of hs){const g=groupOf(h.object);if(!g)continue;const k=g.userData.part;if(k==="glass"&&glassOn&&explode<.2)continue;if(k==="case"&&hs.length>1)continue;return{g,k,p:h.point}}
+  if(hs.length){const g=groupOf(hs[0].object);if(g)return{g,k:g.userData.part,p:hs[0].point}}return null};
+ const hit=e=>{const h=hitAt(e.clientX,e.clientY);return h?h.k:null};
+ /* бөлшекті сүйреп жылжыту */
+ const dplane=new THREE.Plane(),hp=new THREE.Vector3();let drag=null;
+ function beginDrag(h){dplane.setFromNormalAndCoplanarPoint(cam.getWorldDirection(new THREE.Vector3()).negate(),h.p);drag={g:h.g,k:h.k,start:h.p.clone(),off0:h.g.userData.off.clone(),moved:false};ctl.enabled=false;resetting=false}
+ function moveDrag(cx,cy){rayAt(cx,cy);if(ray.ray.intersectPlane(dplane,hp)){const d=hp.clone().sub(drag.start);if(d.length()>.01)drag.moved=true;drag.g.userData.off.copy(drag.off0).add(d)}}
+ function endDrag(){const d=drag;drag=null;ctl.enabled=true;return d}
+ r.domElement.addEventListener("pointerdown",e=>{down=[e.clientX,e.clientY];if(e.button!==0||game)return;const h=hitAt(e.clientX,e.clientY);if(h&&h.k!=="case"){beginDrag(h);try{r.domElement.setPointerCapture(e.pointerId)}catch(_){}select(h.k,false)}},{capture:true});
+ r.domElement.addEventListener("pointerup",e=>{if(drag){endDrag();down=null;return}if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])<6){const k=hit(e);if(k)select(k,false)}down=null});
+ r.domElement.addEventListener("pointermove",e=>{if(drag){moveDrag(e.clientX,e.clientY);return}if(e.pointerType!=="mouse")return;const k=hit(e);if(k&&!game){tip.textContent=PC_INFO[k].n+(k!=="case"?" · сүйреп жылжытыңыз":"");tip.style.transform=`translate(${e.offsetX+14}px,${e.offsetY+14}px)`;tip.classList.add("on");r.domElement.style.cursor=k!=="case"?"grab":"pointer"}else{tip.classList.remove("on");r.domElement.style.cursor=""}});
  r.domElement.addEventListener("pointerleave",()=>tip.classList.remove("on"));
+ let resetting=false;$("#labPlace").onclick=()=>{resetting=true};
+ /* жеке қарау */
+ let iso=null;const isoBtn=$("#labIso");
+ function setIso(k){iso=k;PC.root.children.forEach(g=>{if(!g.userData.part)return;g.visible=!k||g.userData.part===k||(k==="mb"&&(g.userData.part==="io"||g.userData.part==="cmos"));if(!k&&g.userData.part==="glass")g.visible=glassOn});isoBtn.classList.toggle("on",!!k);isoBtn.textContent=k?"Барлығын көрсету":"Жеке қарау";
+  if(k){const b=new THREE.Box3();PC.parts[k].forEach(g=>b.expandByObject(g));const c=b.getCenter(new THREE.Vector3()),sz=b.getSize(new THREE.Vector3()).length();const dir=cam.position.clone().sub(ctl.target).normalize();fly={t0:ctl.target.clone(),t1:c,p0:cam.position.clone(),p1:c.clone().add(dir.multiplyScalar(Math.max(1.3,sz*1.6))),k:0};ctl.minDistance=.4}else ctl.minDistance=1.2}
+ isoBtn.onclick=()=>setIso(iso?null:(sel&&sel!=="case"?sel:"mb"));
  /* басқару */
  const sval=$("#labExplodeVal");slider.oninput=()=>{target=explode=+slider.value/100;sval.textContent=slider.value+"%"};
  $("#labOpen").onclick=()=>{target=1;fly={t0:ctl.target.clone(),t1:new THREE.Vector3(.5,1.1,0),p0:cam.position.clone(),p1:new THREE.Vector3(5.6,3.1,4.4).sub(new THREE.Vector3(.5,1.1,0)).multiplyScalar(Math.pow(Math.max(1,1.45/cam.aspect),.75)).add(new THREE.Vector3(.5,1.1,0)),k:0}};$("#labClose").onclick=()=>{target=0;$("#labReset").click()};
- let glassOn=true;$("#labGlass").onclick=e=>{glassOn=!glassOn;PC.parts.glass[0].visible=glassOn;e.currentTarget.classList.toggle("on",!glassOn);e.currentTarget.textContent=glassOn?"Шыны панельді алу":"Шыны панельді қою"};
+ let glassOn=true;$("#labGlass").onclick=e=>{glassOn=!glassOn;if(!iso)PC.parts.glass[0].visible=glassOn;e.currentTarget.classList.toggle("on",!glassOn);e.currentTarget.textContent=glassOn?"Шыны панельді алу":"Шыны панельді қою"};
  let spin=true;$("#labFans").onclick=e=>{spin=!spin;e.currentTarget.classList.toggle("on",!spin);e.currentTarget.textContent=spin?"Желдеткішті тоқтату":"Желдеткішті қосу"};
  $("#labAir").onclick=e=>{air.visible=!air.visible;e.currentTarget.classList.toggle("on",air.visible)};
  const modes=["rainbow","#5aa0ff","#c9a25a","off"];let mode=0;$("#labRgb").onclick=e=>{mode=(mode+1)%modes.length;e.currentTarget.textContent=["RGB: кемпірқосақ","RGB: көк","RGB: алтын","RGB: өшірулі"][mode]};
@@ -938,14 +954,62 @@ function startPcLab(host){
  const cableParts=PC.parts.cables;
  (function loop(){requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.05);if(!vis)return;tt+=dt;
   if(Math.abs(target-explode)>.001){explode+=(target-explode)*Math.min(1,dt*3);slider.value=Math.round(explode*100);sval.textContent=slider.value+"%"}
-  for(const k in PC.parts)PC.parts[k].forEach(g=>{const u=g.userData;const f=ss(u.stage[0],u.stage[1],explode);g.position.copy(u.base).addScaledVector(u.delta,f)});
-  cableParts.forEach(g=>{const v=1-ss(.02,.18,explode);g.scale.setScalar(Math.max(.001,v));g.visible=v>.01});
+  for(const k in PC.parts)PC.parts[k].forEach(g=>{const u=g.userData;const f=ss(u.stage[0],u.stage[1],explode);if(resetting)u.off.multiplyScalar(Math.max(0,1-dt*6));g.position.copy(u.base).addScaledVector(u.delta,f).add(u.off)});if(resetting&&!PC.root.children.some(g=>g.userData.off&&g.userData.off.lengthSq()>1e-6))resetting=false;
+  cableParts.forEach(g=>{const v=1-ss(.02,.18,explode);g.scale.setScalar(Math.max(.001,v));if(!iso)g.visible=v>.01});
   if(sel)hilite(sel);
   if(spin)PC.fans.forEach((f,i)=>f.userData.rotor.rotation.z-=dt*(i<4?14:18));
   const m=modes[mode];PC.rgbMats.forEach((mat,i)=>{if(m==="off"){mat.emissiveIntensity=0}else{mat.emissiveIntensity=1.3;if(m==="rainbow")mat.emissive.setHSL((tt*.08+i*.09)%1,.9,.5);else mat.emissive.set(m)}});
   if(air.visible){for(let i=0;i<N;i++){const sd=seeds[i];const z=1.05-((sd[2]+tt*.25)%1)*2.15;pos[i*3]=sd[0]+Math.sin(tt*2+i)*.02;pos[i*3+1]=sd[1]+Math.sin(z*3+i)*.03;pos[i*3+2]=z;tmp.copy(cold).lerp(hot,Math.min(1,Math.max(0,(1-z)/1.8)));col.set([tmp.r,tmp.g,tmp.b],i*3)}pg.attributes.position.needsUpdate=true;pg.attributes.color.needsUpdate=true}
   if(fly){fly.k=Math.min(1,fly.k+dt/.9);const e=fly.k<.5?2*fly.k*fly.k:1-Math.pow(-2*fly.k+2,2)/2;ctl.target.lerpVectors(fly.t0,fly.t1,e);cam.position.lerpVectors(fly.p0,fly.p1,e);if(fly.k>=1)fly=null}
   ctl.update();if(post)post.c.render(dt);else r.render(s,cam)})();
+ /* толық экран */
+ const wrapEl=$("#labWrap"),fsBtns=[...document.querySelectorAll(".lab-fs")];
+ const isFull=()=>document.fullscreenElement===wrapEl||wrapEl.classList.contains("lab-full");
+ const fsSync=()=>{const f=isFull();fsBtns.forEach(b=>{b.classList.toggle("on",f);b.setAttribute("aria-label",f?"Толық экраннан шығу":"Толық экран");const t=b.querySelector(".t");if(t)t.textContent=f?"Шығу":"Толық экран"});document.body.classList.toggle("lab-lock",wrapEl.classList.contains("lab-full"))};
+ fsBtns.forEach(b=>b.onclick=async()=>{if(isFull()){if(document.fullscreenElement)await document.exitFullscreen().catch(()=>{});wrapEl.classList.remove("lab-full")}else{let ok=false;try{if(wrapEl.requestFullscreen){await wrapEl.requestFullscreen();ok=true}}catch(_){}if(!ok)wrapEl.classList.add("lab-full")}fsSync();setTimeout(rs,60)});
+ document.addEventListener("fullscreenchange",()=>{fsSync();setTimeout(rs,60)});
+ addEventListener("keydown",e=>{if(e.key==="Escape"&&wrapEl.classList.contains("lab-full")){wrapEl.classList.remove("lab-full");fsSync();setTimeout(rs,60)}});
+ /* қолмен басқару: камера + MediaPipe Hands */
+ const handBtn=$("#labHand"),hmsg=$("#labHandMsg"),cursorEl=host.querySelector(".lab-cursor"),camBox=host.querySelector(".lab-cam");let hand=null;
+ handBtn.onclick=()=>hand?stopHand():startHand();
+ function stopHand(){if(!hand)return;hand.stop=true;try{hand.stream.getTracks().forEach(t=>t.stop())}catch(_){}hand=null;camBox.classList.remove("on");cursorEl.classList.remove("on");handBtn.classList.remove("on");handBtn.textContent="Қолмен басқару (камера)";hmsg.textContent="";if(drag)endDrag()}
+ async function startHand(){handBtn.disabled=true;hmsg.textContent="Камера қосылуда…";
+  try{
+   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("nocam");
+   const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:"user"},audio:false});
+   const vid=camBox.querySelector("video");vid.srcObject=stream;await vid.play();
+   hmsg.textContent="Қол тану моделі жүктелуде…";
+   const V="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+   const vision=await import(V+"/vision_bundle.mjs");
+   const files=await vision.FilesetResolver.forVisionTasks(V+"/wasm");
+   const lm=await vision.HandLandmarker.createFromOptions(files,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numHands:1});
+   hand={stream,vid,lm,stop:false,cx:.5,cy:.5,pinch:false,pinchT:0,mode:null,last:null,palmT:0,fistT:0,lastTs:-1};
+   camBox.classList.add("on");handBtn.classList.add("on");handBtn.textContent="Қолмен басқаруды өшіру";
+   hmsg.innerHTML="Сұқ саусақ — меңзер · <b>шымшу</b> (бас бармақ + сұқ саусақ) — бөлшекті ұстап жылжыту немесе бос жерде көріністі айналдыру · <b>алақанды жаю</b> — бөлшектеу · <b>жұдырық</b> — жинау";
+   handLoop();
+  }catch(err){console.warn(err);stopHand();const blocked=err&&(err.name==="NotAllowedError"||err.name==="SecurityError"||err.message==="nocam");
+   hmsg.textContent=blocked?"Камераға рұқсат берілмеді. Бұл бетте камера жабық болса, сайтты GitHub сілтемесі немесе HTML файл арқылы ашыңыз.":"Қол тану моделі жүктелмеді. Интернетті тексеріп, қайта көріңіз."}
+  handBtn.disabled=false}
+ const cv2=camBox.querySelector("canvas"),c2=cv2.getContext("2d");
+ const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+ function handLoop(){if(!hand||hand.stop)return;requestAnimationFrame(handLoop);const H=hand;if(H.vid.readyState<2)return;const ts=performance.now();if(ts<=H.lastTs)return;H.lastTs=ts;
+  let res;try{res=H.lm.detectForVideo(H.vid,ts)}catch(_){return}
+  c2.clearRect(0,0,cv2.width,cv2.height);
+  const L=res.landmarks&&res.landmarks[0];if(!L){cursorEl.classList.remove("on");if(H.pinch){H.pinch=false;finishPinch()}return}
+  c2.fillStyle="#c9a25a";L.forEach(p=>{c2.beginPath();c2.arc((1-p.x)*cv2.width,p.y*cv2.height,3,0,7);c2.fill()});
+  const size=dist(L[0],L[9])||.1;const pinch=dist(L[4],L[8])/size<(H.pinch?.5:.35);
+  const ext=[[8,6],[12,10],[16,14],[20,18]].filter(([t,pp])=>dist(L[t],L[0])>dist(L[pp],L[0])*1.12).length;
+  const nx=Math.min(1,Math.max(0,((1-L[8].x)-.18)/.64)),ny=Math.min(1,Math.max(0,(L[8].y-.15)/.6));H.cx+=(nx-H.cx)*.45;H.cy+=(ny-H.cy)*.45;
+  const rc=r.domElement.getBoundingClientRect();const px=rc.left+H.cx*rc.width,py=rc.top+H.cy*rc.height;
+  cursorEl.classList.add("on");cursorEl.classList.toggle("pinch",pinch);cursorEl.style.transform=`translate(${H.cx*rc.width}px,${H.cy*rc.height}px)`;
+  if(pinch&&!H.pinch){H.pinch=true;H.pinchT=ts;const h=hitAt(px,py);if(h&&h.k!=="case"){beginDrag(h);H.mode="drag";select(h.k,false)}else{H.mode="rot";H.last=[H.cx,H.cy];ctl.enabled=false}}
+  else if(pinch&&H.pinch){if(H.mode==="drag"&&drag)moveDrag(px,py);else if(H.mode==="rot"){const dx=H.cx-H.last[0],dy=H.cy-H.last[1];H.last=[H.cx,H.cy];const off=cam.position.clone().sub(ctl.target);const sp=new THREE.Spherical().setFromVector3(off);sp.theta-=dx*5;sp.phi=Math.min(ctl.maxPolarAngle,Math.max(.15,sp.phi-dy*4));off.setFromSpherical(sp);cam.position.copy(ctl.target).add(off)}}
+  else if(!pinch&&H.pinch){H.pinch=false;finishPinch()}
+  else{const h=hitAt(px,py);if(h&&!game){tip.textContent=PC_INFO[h.k].n;tip.style.transform=`translate(${H.cx*rc.width+16}px,${H.cy*rc.height+16}px)`;tip.classList.add("on")}else tip.classList.remove("on")}
+  if(!pinch&&ext>=4){H.palmT+=1;if(H.palmT===20&&target<.5){target=1;hmsg.firstChild&&(cursorEl.dataset.g="Бөлшектеу")}}else H.palmT=0;
+  if(!pinch&&ext===0){H.fistT+=1;if(H.fistT===20&&target>.5){target=0}}else H.fistT=0;
+ }
+ function finishPinch(){const H=hand;if(H&&H.mode==="drag"&&drag){endDrag()}else ctl.enabled=true;if(H)H.mode=null}
  select("mb",false);
 }
 try{initPcLab()}catch(e){console.error(e)}

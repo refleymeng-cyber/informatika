@@ -281,6 +281,27 @@ textarea{width:100%;min-height:60px;resize:vertical;line-height:1.45}
 #labGame .q{font-size:15.5px;margin-top:4px}
 #labGame .ok{color:var(--ok);font-weight:700;margin-top:6px}
 #labGame .bad{color:var(--bad);font-weight:600;margin-top:6px}
+
+
+.lab-fs-top{position:absolute;right:12px;top:12px;z-index:3;display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--navy);border-radius:99px;padding:7px 12px;font-weight:700;font-size:13px}
+.lab-fs-top svg{width:18px;height:18px}
+.lab-fs-top:hover{border-color:var(--gold)}
+.lab-btn.hand{background:linear-gradient(180deg,#fff,var(--gold-soft));border-color:var(--gold2)}
+.lab-btn.hand.on{background:var(--gold);border-color:var(--gold);color:#fff}
+.lab-hmsg{margin:8px 0 0;font-size:13px;line-height:1.5;color:var(--mute)}
+.lab-hmsg:empty{display:none}
+.lab-cursor{position:absolute;left:-14px;top:-14px;width:28px;height:28px;border-radius:50%;border:3px solid var(--gold);background:rgba(201,162,90,.18);pointer-events:none;opacity:0;z-index:4;transition:opacity .2s,background .15s}
+.lab-cursor.on{opacity:1}
+.lab-cursor.pinch{background:var(--gold);transform-origin:center}
+.lab-cam{position:absolute;right:12px;bottom:12px;width:176px;height:132px;border-radius:14px;overflow:hidden;border:2px solid #fff;box-shadow:0 8px 20px -8px rgba(0,0,0,.4);display:none;z-index:3;background:#111}
+.lab-cam.on{display:block}
+.lab-cam video,.lab-cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.lab-cam video{transform:scaleX(-1)}
+#labWrap:fullscreen,#labWrap.lab-full{position:fixed;inset:0;z-index:100;margin:0;padding:14px;background:var(--paper);grid-template-columns:minmax(0,1fr) 360px;gap:14px;width:100vw;height:100vh;overflow:hidden}
+#labWrap:fullscreen .lab-stage,#labWrap.lab-full .lab-stage{position:relative;top:0;height:100%}
+#labWrap:fullscreen .lab-panel,#labWrap.lab-full .lab-panel{overflow:auto;padding-right:4px}
+body.lab-lock{overflow:hidden}
+@media (max-width:1000px){#labWrap:fullscreen,#labWrap.lab-full{grid-template-columns:minmax(0,1fr);grid-template-rows:62% 38%}}
 @media (max-width:1000px){.lab-grid{grid-template-columns:minmax(0,1fr)}.lab-stage{position:relative;top:0;height:520px}}
 @media (max-width:600px){.lab-stage{height:430px}.lab-hint{display:none}}
 
@@ -406,16 +427,17 @@ textarea{width:100%;min-height:60px;resize:vertical;line-height:1.45}
 </div></section>
 
 <section class="lab" id="lab"><div class="wrap">
- <header class="sec-h"><h2><svg><use href="#i-cube"/></svg>3D зертхана: жүйелік блоктың ішінде</h2><p>Корпусты айналдырып, бөлшектерге бөліңіз. Кез келген бөлшекті бассаңыз, оның атауы мен қызметі шығады.</p></header>
- <div class="lab-grid">
-  <div class="lab-stage" id="pclab"><div class="lab-load">3D жүйелік блок жүктелуде…</div><div class="lab-tip"></div><span class="lab-badge">3D · интерактивті</span><span class="lab-hint">Сүйреу — айналдыру · дөңгелек — жақындату · оң батырма — жылжыту</span></div>
+ <header class="sec-h"><h2><svg><use href="#i-cube"/></svg>3D зертхана: жүйелік блоктың ішінде</h2><p>Корпусты айналдырып, бөлшектерге бөліңіз. Әр бөлшекті сүйреп жылжытуға, жеке қарауға болады. Камера арқылы қолмен де басқаруға болады.</p></header>
+ <div class="lab-grid" id="labWrap">
+  <div class="lab-stage" id="pclab"><button class="lab-fs lab-fs-top" type="button" aria-label="Толық экран"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="t">Толық экран</span></button><div class="lab-cursor" aria-hidden="true"></div><div class="lab-cam" aria-hidden="true"><video playsinline muted></video><canvas width="320" height="240"></canvas></div><div class="lab-load">3D жүйелік блок жүктелуде…</div><div class="lab-tip"></div><span class="lab-badge">3D · интерактивті</span><span class="lab-hint">Бос жерді сүйреу — айналдыру · бөлшекті сүйреу — жылжыту · дөңгелек — жақындату</span></div>
   <div class="lab-panel" id="labPanel">
-   <div class="lab-card" id="labInfo"><span class="eyebrow">Бөлшек</span><h3>Бөлшекті таңдаңыз</h3><p>Сахнадағы бөлшекті немесе төмендегі тізімнен атауды басыңыз.</p></div>
+   <div class="lab-card"><div id="labInfo"><span class="eyebrow">Бөлшек</span><h3>Бөлшекті таңдаңыз</h3><p>Сахнадағы бөлшекті немесе төмендегі тізімнен атауды басыңыз.</p></div><div class="lab-row"><button class="lab-btn primary" id="labIso" type="button">Жеке қарау</button><button class="lab-btn" id="labPlace" type="button">Бөлшектерді орнына қайтару</button></div></div>
    <div class="lab-card lab-ctrl">
     <label for="labExplode">Бөлшектеу <span id="labExplodeVal">0%</span></label>
     <input type="range" id="labExplode" min="0" max="100" value="0">
     <div class="lab-row"><button class="lab-btn primary" id="labOpen" type="button">Бөлшектеу</button><button class="lab-btn" id="labClose" type="button">Жинау</button><button class="lab-btn" id="labReset" type="button">Көріністі қалпына келтіру</button></div>
-    <div class="lab-row"><button class="lab-btn" id="labGlass" type="button">Шыны панельді алу</button><button class="lab-btn" id="labAir" type="button">Ауа ағынын көрсету</button><button class="lab-btn" id="labFans" type="button">Желдеткішті тоқтату</button><button class="lab-btn" id="labRgb" type="button">RGB: кемпірқосақ</button></div>
+    <div class="lab-row"><button class="lab-btn" id="labGlass" type="button">Шыны панельді алу</button><button class="lab-btn" id="labAir" type="button">Ауа ағынын көрсету</button><button class="lab-btn" id="labFans" type="button">Желдеткішті тоқтату</button><button class="lab-btn" id="labRgb" type="button">RGB: кемпірқосақ</button><button class="lab-btn lab-fs" type="button"><span class="t">Толық экран</span></button></div>
+    <div class="lab-row"><button class="lab-btn hand" id="labHand" type="button">Қолмен басқару (камера)</button></div><p class="lab-hmsg" id="labHandMsg" aria-live="polite"></p>
    </div>
    <div class="lab-card"><span class="eyebrow">Бөлшектер</span><div id="labParts" style="margin-top:8px"></div></div>
    <div class="lab-card"><div id="labGame"><span class="eyebrow">Ойын</span><div class="q">«Бөлшекті тап»: атауы берілген бөлшекті сахнадан тауып, басыңыз.</div></div><div class="lab-row"><button class="lab-btn primary" id="labGameBtn" type="button">Ойынды бастау</button></div></div>
