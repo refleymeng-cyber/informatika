@@ -293,6 +293,8 @@ textarea{width:100%;min-height:60px;resize:vertical;line-height:1.45}
 .lab-cursor{position:absolute;left:-14px;top:-14px;width:28px;height:28px;border-radius:50%;border:3px solid var(--gold);background:rgba(201,162,90,.18);pointer-events:none;opacity:0;z-index:4;transition:opacity .2s,background .15s}
 .lab-cursor.on{opacity:1}
 .lab-cursor.pinch{background:var(--gold);transform-origin:center}
+.lab-cursor::after{content:attr(data-g);position:absolute;left:34px;top:2px;white-space:nowrap;font:700 12px var(--body);color:#fff;background:rgba(21,50,95,.9);padding:3px 8px;border-radius:7px}
+.lab-cursor[data-g=""]::after,.lab-cursor:not([data-g])::after{display:none}
 .lab-cam{position:absolute;right:12px;bottom:12px;width:176px;height:132px;border-radius:14px;overflow:hidden;border:2px solid #fff;box-shadow:0 8px 20px -8px rgba(0,0,0,.4);display:none;z-index:3;background:#111}
 .lab-cam.on{display:block}
 .lab-cam video,.lab-cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}

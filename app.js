@@ -934,7 +934,7 @@ function startPcLab(host){
  isoBtn.onclick=()=>setIso(iso?null:(sel&&sel!=="case"?sel:"mb"));
  /* басқару */
  const sval=$("#labExplodeVal");slider.oninput=()=>{target=explode=+slider.value/100;sval.textContent=slider.value+"%"};
- $("#labOpen").onclick=()=>{target=1;fly={t0:ctl.target.clone(),t1:new THREE.Vector3(.5,1.1,0),p0:cam.position.clone(),p1:new THREE.Vector3(5.6,3.1,4.4).sub(new THREE.Vector3(.5,1.1,0)).multiplyScalar(Math.pow(Math.max(1,1.45/cam.aspect),.75)).add(new THREE.Vector3(.5,1.1,0)),k:0}};$("#labClose").onclick=()=>{target=0;$("#labReset").click()};
+ $("#labOpen").onclick=()=>{target=1;fly={t0:ctl.target.clone(),t1:new THREE.Vector3(.5,1.1,0),p0:cam.position.clone(),p1:new THREE.Vector3(5.6,3.1,4.4).sub(new THREE.Vector3(.5,1.1,0)).multiplyScalar(Math.pow(Math.max(1,1.45/cam.aspect),.75)).add(new THREE.Vector3(.5,1.1,0)),k:0}};$("#labClose").onclick=()=>{target=0;resetting=true;$("#labReset").click()};
  let glassOn=true;$("#labGlass").onclick=e=>{glassOn=!glassOn;if(!iso)PC.parts.glass[0].visible=glassOn;e.currentTarget.classList.toggle("on",!glassOn);e.currentTarget.textContent=glassOn?"Шыны панельді алу":"Шыны панельді қою"};
  let spin=true;$("#labFans").onclick=e=>{spin=!spin;e.currentTarget.classList.toggle("on",!spin);e.currentTarget.textContent=spin?"Желдеткішті тоқтату":"Желдеткішті қосу"};
  $("#labAir").onclick=e=>{air.visible=!air.visible;e.currentTarget.classList.toggle("on",air.visible)};
@@ -997,17 +997,24 @@ function startPcLab(host){
   c2.clearRect(0,0,cv2.width,cv2.height);
   const L=res.landmarks&&res.landmarks[0];if(!L){cursorEl.classList.remove("on");if(H.pinch){H.pinch=false;finishPinch()}return}
   c2.fillStyle="#c9a25a";L.forEach(p=>{c2.beginPath();c2.arc((1-p.x)*cv2.width,p.y*cv2.height,3,0,7);c2.fill()});
-  const size=dist(L[0],L[9])||.1;const pinch=dist(L[4],L[8])/size<(H.pinch?.5:.35);
+  const size=dist(L[0],L[9])||.1;
+  const curled=[[8,5],[12,9],[16,13],[20,17]].map(([t,m])=>dist(L[t],L[0])<dist(L[m],L[0])*1.3);
+  const nCurl=curled.filter(Boolean).length;
   const ext=[[8,6],[12,10],[16,14],[20,18]].filter(([t,pp])=>dist(L[t],L[0])>dist(L[pp],L[0])*1.12).length;
+  const fist=nCurl===4;
+  const pinch=!fist&&dist(L[4],L[8])/size<(H.pinch?.5:.33)&&!curled[0];
   const nx=Math.min(1,Math.max(0,((1-L[8].x)-.18)/.64)),ny=Math.min(1,Math.max(0,(L[8].y-.15)/.6));H.cx+=(nx-H.cx)*.45;H.cy+=(ny-H.cy)*.45;
   const rc=r.domElement.getBoundingClientRect();const px=rc.left+H.cx*rc.width,py=rc.top+H.cy*rc.height;
   cursorEl.classList.add("on");cursorEl.classList.toggle("pinch",pinch);cursorEl.style.transform=`translate(${H.cx*rc.width}px,${H.cy*rc.height}px)`;
   if(pinch&&!H.pinch){H.pinch=true;H.pinchT=ts;const h=hitAt(px,py);if(h&&h.k!=="case"){beginDrag(h);H.mode="drag";select(h.k,false)}else{H.mode="rot";H.last=[H.cx,H.cy];ctl.enabled=false}}
   else if(pinch&&H.pinch){if(H.mode==="drag"&&drag)moveDrag(px,py);else if(H.mode==="rot"){const dx=H.cx-H.last[0],dy=H.cy-H.last[1];H.last=[H.cx,H.cy];const off=cam.position.clone().sub(ctl.target);const sp=new THREE.Spherical().setFromVector3(off);sp.theta-=dx*5;sp.phi=Math.min(ctl.maxPolarAngle,Math.max(.15,sp.phi-dy*4));off.setFromSpherical(sp);cam.position.copy(ctl.target).add(off)}}
   else if(!pinch&&H.pinch){H.pinch=false;finishPinch()}
+  if(fist)tip.classList.remove("on");
   else{const h=hitAt(px,py);if(h&&!game){tip.textContent=PC_INFO[h.k].n;tip.style.transform=`translate(${H.cx*rc.width+16}px,${H.cy*rc.height+16}px)`;tip.classList.add("on")}else tip.classList.remove("on")}
-  if(!pinch&&ext>=4){H.palmT+=1;if(H.palmT===20&&target<.5){target=1;hmsg.firstChild&&(cursorEl.dataset.g="Бөлшектеу")}}else H.palmT=0;
-  if(!pinch&&ext===0){H.fistT+=1;if(H.fistT===20&&target>.5){target=0}}else H.fistT=0;
+  const dt2=H.prevTs?Math.min(.1,(ts-H.prevTs)/1000):0;H.prevTs=ts;
+  if(!pinch&&!fist&&ext>=4){H.palmT+=dt2;cursorEl.dataset.g=H.palmT<.6?"Бөлшектеу…":"";if(H.palmT>=.6&&!H.palmDone){H.palmDone=true;$("#labOpen").click();cursorEl.dataset.g="Бөлшектелді"}}else{H.palmT=0;H.palmDone=false}
+  if(fist){H.fistT+=dt2;cursorEl.dataset.g=H.fistT<.6?"Жинау…":"";if(H.fistT>=.6&&!H.fistDone){H.fistDone=true;resetting=true;target=0;if(iso)setIso(null);$("#labReset").click();cursorEl.dataset.g="Жиналды"}}else{H.fistT=0;H.fistDone=false}
+  if(!fist&&!(ext>=4)&&!pinch)cursorEl.dataset.g="";
  }
  function finishPinch(){const H=hand;if(H&&H.mode==="drag"&&drag){endDrag()}else ctl.enabled=true;if(H)H.mode=null}
  select("mb",false);
