@@ -249,6 +249,41 @@ textarea{width:100%;min-height:60px;resize:vertical;line-height:1.45}
 
 
 
+/* 3D зертхана */
+.lab{padding:34px 0 30px}
+.lab .sec-h p{margin:0;color:var(--mute);font-size:14.5px;max-width:56ch}
+.lab-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:stretch}
+.lab-stage{position:sticky;top:84px;align-self:start;height:640px;border-radius:24px;overflow:hidden;border:1px solid var(--line);background:#f3f1f8;box-shadow:var(--shadow);touch-action:none}
+.lab-stage canvas{display:block;width:100%;height:100%}
+.lab-load{position:absolute;inset:0;display:grid;place-items:center;color:var(--mute);font-weight:600}
+.lab-tip{position:absolute;left:0;top:0;pointer-events:none;background:rgba(21,50,95,.92);color:#fff;font-size:13px;font-weight:600;padding:5px 10px;border-radius:8px;opacity:0;transition:opacity .15s;white-space:nowrap}
+.lab-tip.on{opacity:1}
+.lab-hint{position:absolute;left:14px;bottom:12px;font-size:12.5px;color:#4a5366;background:rgba(255,255,255,.88);border:1px solid var(--line);padding:5px 11px;border-radius:99px;pointer-events:none}
+.lab-badge{position:absolute;left:14px;top:14px;display:flex;gap:6px;align-items:center;font:700 12px var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--navy);background:rgba(255,255,255,.9);border:1px solid var(--gold2);padding:6px 12px;border-radius:99px;pointer-events:none}
+.lab-panel{display:flex;flex-direction:column;gap:14px}
+.lab-card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px 18px;box-shadow:var(--shadow)}
+#labInfo h3{font:800 20px/1.25 var(--display);color:var(--navy);margin:4px 0 6px}
+#labInfo p{margin:0 0 8px;font-size:14.5px;line-height:1.55}
+#labInfo .fact{background:var(--gold-soft);border-radius:12px;padding:9px 12px;font-size:13.5px;margin:0}
+#labInfo .fact b{color:#8a6a2c}
+.lab-ctrl label{display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin-bottom:6px}
+.lab-ctrl input[type=range]{width:100%;accent-color:var(--navy)}
+.lab-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.lab-btn{border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--ink)}
+.lab-btn:hover{border-color:var(--gold)}
+.lab-btn.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.lab-btn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+#labParts{display:flex;flex-wrap:wrap;gap:6px}
+.lab-chip{border:1px solid var(--line);background:var(--paper);border-radius:99px;padding:6px 11px;font-size:13px}
+.lab-chip:hover{border-color:var(--gold)}
+.lab-chip.on{background:var(--gold-soft);border-color:var(--gold);font-weight:600}
+#labGame{font-size:14px;line-height:1.5}
+#labGame .q{font-size:15.5px;margin-top:4px}
+#labGame .ok{color:var(--ok);font-weight:700;margin-top:6px}
+#labGame .bad{color:var(--bad);font-weight:600;margin-top:6px}
+@media (max-width:1000px){.lab-grid{grid-template-columns:minmax(0,1fr)}.lab-stage{position:relative;top:0;height:520px}}
+@media (max-width:600px){.lab-stage{height:430px}.lab-hint{display:none}}
+
 /* төменгі бөлім */
 .site-foot{background:var(--navy);color:#dfe6f2;position:relative;overflow:hidden}
 .site-foot .orn{width:220px;height:220px;right:-20px;top:-20px;left:auto;opacity:.35;transform:scaleX(-1)}
@@ -321,7 +356,7 @@ textarea{width:100%;min-height:60px;resize:vertical;line-height:1.45}
   <a href="#top" class="on" data-nav="top"><svg><use href="#i-home"/></svg><span class="lbl">Басты бет</span></a>
   <a href="#topics" data-nav="topics"><svg><use href="#i-layers"/></svg><span class="lbl">Тақырыптар</span></a>
   <a href="#work" data-nav="work"><svg><use href="#i-check"/></svg><span class="lbl">Тапсырмалар</span></a>
-  <a href="#work" data-nav="lab"><svg><use href="#i-cube"/></svg><span class="lbl">3D зертхана</span></a>
+  <a href="#lab" data-nav="lab"><svg><use href="#i-cube"/></svg><span class="lbl">3D зертхана</span></a>
  </nav>
 </div></header>
 
@@ -367,6 +402,24 @@ textarea{width:100%;min-height:60px;resize:vertical;line-height:1.45}
    <p class="note">Тапсырманы «Тексеру» батырмасымен тексерген сайын жаңарады.</p>
    <button class="reset" id="achReset" type="button">Нәтижені тазалау</button>
   </aside>
+ </div>
+</div></section>
+
+<section class="lab" id="lab"><div class="wrap">
+ <header class="sec-h"><h2><svg><use href="#i-cube"/></svg>3D зертхана: жүйелік блоктың ішінде</h2><p>Корпусты айналдырып, бөлшектерге бөліңіз. Кез келген бөлшекті бассаңыз, оның атауы мен қызметі шығады.</p></header>
+ <div class="lab-grid">
+  <div class="lab-stage" id="pclab"><div class="lab-load">3D жүйелік блок жүктелуде…</div><div class="lab-tip"></div><span class="lab-badge">3D · интерактивті</span><span class="lab-hint">Сүйреу — айналдыру · дөңгелек — жақындату · оң батырма — жылжыту</span></div>
+  <div class="lab-panel" id="labPanel">
+   <div class="lab-card" id="labInfo"><span class="eyebrow">Бөлшек</span><h3>Бөлшекті таңдаңыз</h3><p>Сахнадағы бөлшекті немесе төмендегі тізімнен атауды басыңыз.</p></div>
+   <div class="lab-card lab-ctrl">
+    <label for="labExplode">Бөлшектеу <span id="labExplodeVal">0%</span></label>
+    <input type="range" id="labExplode" min="0" max="100" value="0">
+    <div class="lab-row"><button class="lab-btn primary" id="labOpen" type="button">Бөлшектеу</button><button class="lab-btn" id="labClose" type="button">Жинау</button><button class="lab-btn" id="labReset" type="button">Көріністі қалпына келтіру</button></div>
+    <div class="lab-row"><button class="lab-btn" id="labGlass" type="button">Шыны панельді алу</button><button class="lab-btn" id="labAir" type="button">Ауа ағынын көрсету</button><button class="lab-btn" id="labFans" type="button">Желдеткішті тоқтату</button><button class="lab-btn" id="labRgb" type="button">RGB: кемпірқосақ</button></div>
+   </div>
+   <div class="lab-card"><span class="eyebrow">Бөлшектер</span><div id="labParts" style="margin-top:8px"></div></div>
+   <div class="lab-card"><div id="labGame"><span class="eyebrow">Ойын</span><div class="q">«Бөлшекті тап»: атауы берілген бөлшекті сахнадан тауып, басыңыз.</div></div><div class="lab-row"><button class="lab-btn primary" id="labGameBtn" type="button">Ойынды бастау</button></div></div>
+  </div>
  </div>
 </div></section>
 

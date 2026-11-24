@@ -626,9 +626,9 @@ function openL(i){disposeViewers();curL=i;const L=LESSONS[i];const m=$("#main");
  nx.append(pv,nn);m.appendChild(nx);refreshProgress()}
 document.querySelectorAll(".qtab").forEach(b=>b.onclick=()=>setQ(+b.dataset.q));
 $("#achReset").onclick=()=>{for(const k in PROG)delete PROG[k];for(const k in SCORE)delete SCORE[k];saveProg();openL(curL)};
-document.querySelectorAll(".menu a").forEach(a=>a.addEventListener("click",e=>{const n=a.dataset.nav;if(n==="lab"){e.preventDefault();setQ(2);goWork()}}));
-(()=>{const links=[...document.querySelectorAll(".menu a")];const secs=[["top",$("#top")],["topics",$("#topics")],["work",$("#work")]];
- const upd=()=>{let cur="top";secs.forEach(([k,e])=>{if(e.getBoundingClientRect().top<140)cur=k});if(cur==="work"&&curQ===2)cur="lab";links.forEach(l=>l.classList.toggle("on",l.dataset.nav===cur))};addEventListener("scroll",upd,{passive:true});upd()})();
+document.querySelectorAll(".menu a").forEach(a=>a.addEventListener("click",e=>{const n=a.dataset.nav;}));
+(()=>{const links=[...document.querySelectorAll(".menu a")];const secs=[["top",$("#top")],["topics",$("#topics")],["lab",$("#lab")],["work",$("#work")]];
+ const upd=()=>{let cur="top";secs.forEach(([k,e])=>{if(e.getBoundingClientRect().top<140)cur=k});links.forEach(l=>l.classList.toggle("on",l.dataset.nav===cur))};addEventListener("scroll",upd,{passive:true});upd()})();
 setQ(1);
 
 /* ================== КІРІСПЕДЕГІ 3D: ноутбук, процессор, биттер ================== */
@@ -683,7 +683,8 @@ function initHero(){
  const clk=new THREE.Clock();let vis=true,tt=0,lastDraw=0;
  new IntersectionObserver(e=>vis=e[0].isIntersecting).observe(host);
  const post=makeComposer(r,cam,{radius:.3,k:.8});if(post)post.setScene(s);
- const rs=()=>{const W=host.clientWidth,H=host.clientHeight;r.setSize(W,H);if(post)post.setSize(W,H);cam.aspect=W/H;cam.updateProjectionMatrix()};new ResizeObserver(rs).observe(host);rs();
+ const home=()=>{const k=Math.pow(Math.max(1,1.45/cam.aspect),.75);return new THREE.Vector3(3.6,2.3,3.1).sub(new THREE.Vector3(0,1.1,0)).multiplyScalar(k).add(new THREE.Vector3(0,1.1,0))};let first=true;
+ const rs=()=>{const W=host.clientWidth,H=host.clientHeight;r.setSize(W,H);if(post)post.setSize(W,H);cam.aspect=W/H;cam.updateProjectionMatrix();if(first&&W){first=false;cam.position.copy(home())}};new ResizeObserver(rs).observe(host);rs();
  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
  (function loop(){requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.05);if(!vis)return;tt+=reduce?0:dt;
   if(tt-lastDraw>.06||lastDraw===0){lastDraw=tt;const cyc=(tt*14)%(total+40);draw(reduce?total:Math.floor(Math.min(cyc,total)))}
@@ -718,3 +719,233 @@ function initIntroBg(){
  let t;new ResizeObserver(()=>{clearTimeout(t);t=setTimeout(draw,60)}).observe(sec);draw();
  document.fonts&&document.fonts.ready.then(draw)}
 try{initIntroBg()}catch(e){console.error(e)}
+
+/* ================== 3D ЗЕРТХАНА: ЖҮЙЕЛІК БЛОКТЫҢ ІШІНДЕ ================== */
+const PC_INFO={
+ case:{n:"Корпус (жүйелік блоктың қабы)",d:"Барлық бөлшекті бір жерге бекітіп, оларды шаң мен соққыдан қорғайды. Алдыңғы торы арқылы салқын ауа кіреді.",f:"Бұл — ATX форматындағы «midi-tower» корпус: биіктігі шамамен 47 см."},
+ glass:{n:"Шыны бүйір панелі",d:"Шыңдалған шыныдан жасалған қақпақ: ішіндегі бөлшектерді көруге мүмкіндік береді.",f:"Компьютерді жинағанда алдымен осы панель алынады."},
+ mb:{n:"Аналық тақта",d:"Компьютердің негізгі тақтасы: процессор, жад, бейнекарта, дискілер мен порттардың бәрі осыған қосылып, бір-бірімен деректер алмасады.",f:"ATX тақтасының өлшемі — 30,5 × 24,4 см. Ондағы жіңішке мыс жолдар — деректер мен ток жүретін «жолдар»."},
+ cpu:{n:"Процессор (CPU)",d:"Компьютердің «миы»: программалардың командаларын орындап, есептеулер жүргізеді.",f:"Қазіргі процессор секундына миллиардтаған операция жасайды: жиілігі 5 ГГц-ке дейін, ядросы 8–16."},
+ cooler:{n:"Процессор салқындатқышы",d:"Процессордың жылуын мыс жылу құбырлары арқылы алюминий радиаторға өткізеді, ал желдеткіш оны ауаға үрлеп шығарады.",f:"Салқындатқышсыз процессор бірнеше секундта 100 °C-қа дейін қызып, өзін-өзі өшіреді."},
+ ram:{n:"Жедел жад (RAM)",d:"Қазір ашық тұрған программалар мен деректер уақытша сақталатын жылдам жад. Компьютер өшсе, ондағы ақпарат өшеді.",f:"Мұнда 2 × 16 ГБ DDR5 модулі тұр. Жедел жад дискіден жүздеген есе жылдам."},
+ gpu:{n:"Бейнекарта (GPU)",d:"Экранға шығатын кескінді, 3D графиканы, ойын мен видеоны өңдейді. Жасанды интеллектті оқытуда да қолданылады.",f:"Бейнекартаның мыңдаған шағын ядросы бір мезгілде жұмыс істейді."},
+ psu:{n:"Қоректендіру блогы (PSU)",d:"Розеткадағы 220 В айнымалы токты бөлшектерге керек 12 В, 5 В және 3,3 В тұрақты токқа айналдырады.",f:"Бұл блоктың қуаты — 750 Вт. «80+ Gold» белгісі оның энергияны үнемді жұмсайтынын білдіреді."},
+ nvme:{n:"M.2 NVMe SSD",d:"Аналық тақтаға тікелей орнатылатын өте жылдам жинақтағыш. Операциялық жүйе мен программалар осында сақталады.",f:"Жылдамдығы секундына 7000 МБ-қа дейін: 1 ГБ файлды бір секундқа жетпей көшіреді."},
+ ssd:{n:"SATA SSD (2,5 дюйм)",d:"Қозғалмалы бөлігі жоқ, флеш-жадқа негізделген жинақтағыш. HDD-ден жылдам әрі тыныш.",f:"Жылдамдығы шамамен 550 МБ/с."},
+ hdd:{n:"Қатқыл диск (HDD)",d:"Деректерді айналып тұрған магниттік дискілерге жазады. Көлемі үлкен әрі арзан, бірақ SSD-ден баяу.",f:"Ішіндегі дискілер минутына 7200 рет айналады. Көлемі — 2 ТБ."},
+ fans:{n:"Корпус желдеткіштері",d:"Алдыңғы желдеткіштер салқын ауаны ішке кіргізеді, артқысы ыстық ауаны сыртқа шығарады.",f:"Желдеткіштің диаметрі — 120 мм. Ауа алдынан артқа қарай ағады."},
+ cables:{n:"Қуат кабельдері",d:"Қоректендіру блогынан аналық тақтаға (24 pin), процессорға (8 pin) және бейнекартаға ток жеткізеді.",f:"24 pin — аналық тақтаның негізгі қуат кабелі."},
+ cmos:{n:"CMOS батарейкасы",d:"Компьютер өшіп тұрғанда сағат пен BIOS баптауларын сақтап тұрады.",f:"Әдетте CR2032 үлгісіндегі 3 В батарейка, 5–10 жыл жұмыс істейді."},
+ io:{n:"Артқы порттар (I/O)",d:"USB, HDMI, желі (LAN) және дыбыс порттары: тінтуір, пернетақта, монитор мен интернет осы жерге қосылады.",f:"Порттардың үстіндегі металл қақпақ оларды электр бөгеттерінен қорғайды."}
+};
+const PC_ORDER=["case","glass","mb","cpu","cooler","ram","gpu","psu","nvme","ssd","hdd","fans","cables","cmos","io"];
+
+function txtTex(w,h,draw){const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");draw(x,w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t}
+function labelPlane(w,h,draw,opts){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial(Object.assign({map:txtTex(Math.round(512*w/Math.max(w,h)),Math.round(512*h/Math.max(w,h)),draw),transparent:true,roughness:.6,metalness:.1},opts||{})));return m}
+const SM=(c,o)=>new THREE.MeshPhysicalMaterial(Object.assign({color:c,roughness:.45,metalness:.2,clearcoat:.2,clearcoatRoughness:.4},o||{}));
+function rbox(w,h,d,mat,r){const m=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,r??Math.min(w,h,d)*.15),mat);m.castShadow=m.receiveShadow=true;return m}
+function cyl(r1,r2,h,mat,seg){const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg||32),mat);m.castShadow=m.receiveShadow=true;return m}
+function place(m,x,y,z,rx,ry,rz){m.position.set(x,y,z);if(rx||ry||rz)m.rotation.set(rx||0,ry||0,rz||0);return m}
+
+/* желдеткіш: Z осіне қарайды */
+function mkPcFan(size,ringMats){const g=new THREE.Group();const s=size,half=s/2,rad=s*.47;
+ const sh=new THREE.Shape();const rr=s*.08;sh.moveTo(-half+rr,-half);sh.lineTo(half-rr,-half);sh.quadraticCurveTo(half,-half,half,-half+rr);sh.lineTo(half,half-rr);sh.quadraticCurveTo(half,half,half-rr,half);sh.lineTo(-half+rr,half);sh.quadraticCurveTo(-half,half,-half,half-rr);sh.lineTo(-half,-half+rr);sh.quadraticCurveTo(-half,-half,-half+rr,-half);
+ const hole=new THREE.Path();hole.absarc(0,0,rad,0,Math.PI*2,true);sh.holes.push(hole);
+ const fg=new THREE.ExtrudeGeometry(sh,{depth:s*.2,bevelEnabled:true,bevelThickness:.004,bevelSize:.004,bevelSegments:2,curveSegments:48});fg.translate(0,0,-s*.1);
+ const frame=new THREE.Mesh(fg,SM("#1b1f27",{roughness:.55,metalness:.1}));frame.castShadow=true;g.add(frame);
+ const rotor=new THREE.Group();const hub=cyl(s*.15,s*.15,s*.16,SM("#20242c",{roughness:.35}),40);hub.rotation.x=Math.PI/2;rotor.add(hub);
+ const cap=new THREE.Mesh(new THREE.CircleGeometry(s*.13,40),SM("#2a2f39",{metalness:.6,roughness:.3}));cap.position.z=s*.081;rotor.add(cap);
+ const bladeShape=new THREE.Shape();bladeShape.moveTo(0,-s*.06);bladeShape.quadraticCurveTo(s*.2,-s*.1,s*.33,-s*.02);bladeShape.quadraticCurveTo(s*.3,s*.08,s*.18,s*.09);bladeShape.quadraticCurveTo(s*.08,s*.08,0,s*.05);bladeShape.closePath();
+ const bg=new THREE.ExtrudeGeometry(bladeShape,{depth:.004,bevelEnabled:false,curveSegments:16});
+ const bm=new THREE.MeshPhysicalMaterial({color:"#e8eef8",roughness:.35,transmission:.35,thickness:.01,transparent:true,opacity:.95});
+ for(let i=0;i<7;i++){const piv=new THREE.Group();const b=new THREE.Mesh(bg,bm);b.position.x=s*.12;b.rotation.x=.45;b.castShadow=true;piv.add(b);piv.rotation.z=i/7*Math.PI*2;rotor.add(piv)}
+ g.add(rotor);
+ if(ringMats){const ring=new THREE.Mesh(new THREE.TorusGeometry(rad*.985,s*.012,10,96),ringMats);ring.position.z=s*.1;g.add(ring);const ring2=ring.clone();ring2.position.z=-s*.1;g.add(ring2)}
+ for(const[x,y]of[[-1,-1],[1,-1],[1,1],[-1,1]]){const scr=cyl(s*.025,s*.025,s*.21,SM("#3b414d",{metalness:.8,roughness:.3}),16);scr.rotation.x=Math.PI/2;scr.position.set(x*(half-s*.07),y*(half-s*.07),0);g.add(scr)}
+ g.userData.rotor=rotor;return g}
+
+function pcbTexture(){return txtTex(1024,1280,(x,W,H)=>{
+ const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,"#1b2230");g.addColorStop(1,"#141a25");x.fillStyle=g;x.fillRect(0,0,W,H);
+ x.globalAlpha=.55;x.strokeStyle="#2f3d55";x.lineWidth=2;
+ for(let i=0;i<260;i++){let px=Math.random()*W,py=Math.random()*H;x.beginPath();x.moveTo(px,py);const n=2+Math.random()*3|0;for(let k=0;k<n;k++){if(Math.random()<.5)px+=(Math.random()-.5)*260;else py+=(Math.random()-.5)*260;x.lineTo(px,py)}x.stroke()}
+ x.globalAlpha=1;x.fillStyle="#3a4a66";for(let i=0;i<500;i++){x.fillRect(Math.random()*W,Math.random()*H,3,3)}
+ x.fillStyle="#c9a25a";[[40,40],[W-40,40],[40,H-40],[W-40,H-40],[W/2,40],[W/2,H-40],[40,H/2],[W-40,H/2]].forEach(([a,b])=>{x.beginPath();x.arc(a,b,16,0,7);x.fill();x.fillStyle="#141a25";x.beginPath();x.arc(a,b,8,0,7);x.fill();x.fillStyle="#c9a25a"});
+ x.fillStyle="rgba(230,236,245,.85)";x.font="600 26px 'Noto Sans Mono',monospace";
+ const t=(s,a,b)=>x.fillText(s,a,b);t("CPU_FAN",560,120);t("DIMM_A1  DIMM_A2  DIMM_B1  DIMM_B2",40,470);t("PCIE_X16_1",420,690);t("M.2_1",420,560);t("PCIE_X16_2",420,1060);t("SATA6G",60,1030);t("ATX_24P",40,250);t("BIOS",540,880);t("CMOS",600,820);
+ x.font="800 44px 'Montserrat',sans-serif";x.fillStyle="rgba(201,162,90,.9)";t("INFORMATIKA 7",170,880);x.font="500 22px 'Noto Sans Mono',monospace";x.fillStyle="rgba(200,210,225,.7)";t("ATX · DDR5 · PCIe 5.0",180,915)})}
+
+function buildPC(){
+ const root=new THREE.Group();const parts={};const rgbMats=[];
+ const rgb=()=>{const m=new THREE.MeshStandardMaterial({color:"#000",emissive:"#5aa0ff",emissiveIntensity:1.3,roughness:.4});rgbMats.push(m);return m};
+ const part=(key,info,delta,stage,obj)=>{const g=obj||new THREE.Group();g.userData.part=key;g.userData.info=info||key;g.userData.base=g.position.clone();g.userData.delta=new THREE.Vector3(...delta);g.userData.stage=stage;root.add(g);(parts[key]=parts[key]||[]).push(g);return g};
+ /* корпус */
+ const caseM=SM("#2a2f38",{metalness:.55,roughness:.38});const caseIn=SM("#1d2129",{metalness:.3,roughness:.6});
+ const CASE=part("case","case",[0,0,0],[0,1]);
+ const meshTex=txtTex(512,512,(x,W,H)=>{x.fillStyle="#fff";x.fillRect(0,0,W,H);x.fillStyle="#000";const r=9;for(let j=0;j<40;j++)for(let i=0;i<40;i++){const cx=i*14+(j%2)*7,cy=j*12.2;x.beginPath();for(let k=0;k<6;k++){const a=k/6*Math.PI*2+Math.PI/6;x.lineTo(cx+Math.cos(a)*r*.62,cy+Math.sin(a)*r*.62)}x.fill()}});meshTex.colorSpace=THREE.NoColorSpace;meshTex.wrapS=meshTex.wrapT=THREE.RepeatWrapping;
+ const meshM=(rx,ry)=>{const t=meshTex.clone();t.repeat.set(rx,ry);t.needsUpdate=true;return new THREE.MeshStandardMaterial({color:"#2a2f38",metalness:.6,roughness:.4,alphaMap:t,transparent:true,side:THREE.DoubleSide,alphaTest:.4})};
+ CASE.add(place(rbox(1.1,.03,2.26,caseM,.012),0,.015,0));
+ const top=new THREE.Mesh(new THREE.BoxGeometry(1.06,.02,2.2),meshM(2,4));top.position.set(0,2.35,0);CASE.add(top);
+ CASE.add(place(rbox(1.1,.03,.04,caseM,.01),0,2.355,1.11),place(rbox(1.1,.03,.04,caseM,.01),0,2.355,-1.11));
+ CASE.add(place(rbox(.03,2.36,2.26,caseIn,.01),-.535,1.18,0));
+ const back=new THREE.Group();back.add(place(rbox(1.1,2.36,.03,caseM,.01),0,1.18,-1.12));
+ const rearMesh=new THREE.Mesh(new THREE.CircleGeometry(.27,48),meshM(1,1));rearMesh.position.set(0,1.95,-1.104);rearMesh.rotation.y=Math.PI;back.add(rearMesh);CASE.add(back);
+ for(let i=0;i<7;i++)CASE.add(place(rbox(.12,.035,.02,SM("#3b414d",{metalness:.7}),.004),.05,1.36-i*.07,-1.135));
+ const front=new THREE.Mesh(new THREE.BoxGeometry(1.08,2.3,.025),[caseM,caseM,caseM,caseM,meshM(2,4),caseM]);front.position.set(0,1.18,1.12);CASE.add(front);
+ CASE.add(place(rbox(1.1,.06,.06,caseM,.02),0,2.34,1.12),place(rbox(1.1,.06,.06,caseM,.02),0,.03,1.12));
+ const pwr=cyl(.025,.025,.012,new THREE.MeshStandardMaterial({color:"#111",emissive:"#4fc3f7",emissiveIntensity:1.5}),24);pwr.rotation.x=Math.PI/2;pwr.position.set(.35,2.37,.95);pwr.rotation.set(0,0,0);CASE.add(pwr);
+ for(const x of[-.42,.42])for(const z of[-.95,.95])CASE.add(place(cyl(.06,.07,.04,SM("#111",{roughness:.8}),24),x,-.02,z));
+ CASE.add(place(rbox(.03,2.3,.03,caseM,.008),.535,1.18,1.11),place(rbox(.03,2.3,.03,caseM,.008),.535,1.18,-1.11),place(rbox(.03,.03,2.24,caseM,.008),.535,2.33,0),place(rbox(.03,.03,2.24,caseM,.008),.535,.03,0));
+ /* PSU қақпағы (shroud) */
+ const shM=SM("#252a33",{metalness:.5,roughness:.45});
+ CASE.add(place(rbox(1.04,.025,1.3,shM,.008),0,.565,.45),place(rbox(.025,.55,1.3,shM,.008),.5,.29,.45));
+ const shLogo=labelPlane(.6,.12,(x,W,H)=>{x.fillStyle="#c9a25a";x.font=`800 ${H*.6}px Montserrat,sans-serif`;x.textAlign="center";x.textBaseline="middle";x.fillText("INFORMATIKA 7",W/2,H/2)});shLogo.position.set(.514,.32,.5);shLogo.rotation.y=Math.PI/2;CASE.add(shLogo);
+ /* шыны */
+ const glass=new THREE.Mesh(new RoundedBoxGeometry(.02,2.3,2.2,2,.008),new THREE.MeshPhysicalMaterial({color:"#cfe3ff",metalness:0,roughness:.04,transmission:.92,thickness:.02,ior:1.5,transparent:true,opacity:.35,envMapIntensity:1.2}));
+ glass.position.set(.56,1.18,0);const GL=part("glass","glass",[1.4,0,0],[0,.25],new THREE.Group());GL.add(glass);
+ /* аналық тақта */
+ const MB=part("mb","mb",[.55,0,0],[.62,1]);
+ const pcbM=new THREE.MeshStandardMaterial({map:pcbTexture(),roughness:.7,metalness:.15});const edge=SM("#141a25");
+ const pcb=new THREE.Mesh(new THREE.BoxGeometry(.025,1.52,1.22),[pcbM,edge,edge,edge,edge,edge]);pcb.position.set(-.505,1.5,-.43);pcb.castShadow=pcb.receiveShadow=true;MB.add(pcb);
+ const hsM=SM("#3a404c",{metalness:.85,roughness:.32});const accent=SM("#c9a25a",{metalness:.9,roughness:.25});
+ const vrm1=new THREE.Group();vrm1.add(rbox(.11,.12,.46,hsM,.015));for(let i=0;i<9;i++)vrm1.add(place(rbox(.115,.012,.46,hsM,.004),0,-.05+i*.0125+.0,0));vrm1.add(place(rbox(.005,.02,.4,accent,.003),.058,.04,0));vrm1.position.set(-.44,2.14,-.62);MB.add(vrm1);
+ const vrm2=new THREE.Group();vrm2.add(rbox(.11,.46,.12,hsM,.015));vrm2.add(place(rbox(.005,.4,.02,accent,.003),.058,0,.04));vrm2.position.set(-.44,1.86,-.9);MB.add(vrm2);
+ const IO=part("io","io",[.5,.1,0],[.62,1]);const ioc=rbox(.13,.55,.15,SM("#2b313b",{metalness:.7,roughness:.35}),.02);ioc.position.set(-.425,1.9,-.97);IO.add(ioc);
+ const ioLbl=labelPlane(.5,.13,(x,W,H)=>{x.fillStyle="#c9a25a";x.font=`700 ${H*.45}px Montserrat,sans-serif`;x.textAlign="center";x.textBaseline="middle";x.fillText("I/O · USB · HDMI · LAN",W/2,H/2)});ioLbl.position.set(-.358,1.9,-.97);ioLbl.rotation.set(0,Math.PI/2,Math.PI/2);IO.add(ioLbl);
+ for(let i=0;i<5;i++){IO.add(place(rbox(.05,.06,.02,SM("#4a78c2",{metalness:.3}),.008),-.44,1.72+i*.09,-1.11))}
+ MB.add(place(rbox(.012,.32,.32,SM("#b9c0cb",{metalness:.9,roughness:.25}),.01),-.488,1.88,-.55));
+ const dimmM=SM("#2b2f37",{roughness:.6});for(let i=0;i<4;i++)MB.add(place(rbox(.04,.7,.03,dimmM,.006),-.475,1.85,-.2+i*.06));
+ const slotM=SM("#2b2f37",{roughness:.6}),steel=SM("#cfd5de",{metalness:.95,roughness:.22});
+ MB.add(place(rbox(.045,.04,.5,steel,.008),-.47,1.43,-.62),place(rbox(.045,.04,.5,steel,.008),-.47,.97,-.62),place(rbox(.04,.035,.16,slotM,.006),-.475,1.2,-.79));
+ const chip=new THREE.Group();chip.add(rbox(.04,.26,.26,hsM,.03));chip.add(place(labelPlane(.2,.2,(x,W,H)=>{x.fillStyle="#c9a25a";x.lineWidth=10;x.strokeStyle="#c9a25a";x.beginPath();x.moveTo(W/2,20);x.lineTo(W-20,H/2);x.lineTo(W/2,H-20);x.lineTo(20,H/2);x.closePath();x.stroke();x.font=`800 ${H*.16}px Montserrat`;x.textAlign="center";x.textBaseline="middle";x.fillText("I7",W/2,H/2)}),.021,0,0,0,Math.PI/2,0));chip.position.set(-.47,1.06,-.12);MB.add(chip);
+ const atx=new THREE.Group();atx.add(rbox(.07,.33,.06,SM("#e9ecf1",{roughness:.6}),.008));for(let i=0;i<12;i++)for(let j=0;j<2;j++)atx.add(place(rbox(.02,.02,.02,SM("#20242c"),.004),.03,-.15+i*.027,-.013+j*.026));atx.position.set(-.465,1.75,.14);MB.add(atx);
+ for(let i=0;i<4;i++)MB.add(place(rbox(.04,.05,.04,SM("#e9ecf1",{roughness:.6}),.006),-.475,.92+i*.065,.15));
+ for(let i=0;i<14;i++)MB.add(place(cyl(.018,.018,.05,SM("#1d222b",{metalness:.7,roughness:.3}),16),-.47,2.0-((i%7)*.035),-.72+Math.floor(i/7)*.04,0,0,Math.PI/2));
+ const CM=part("cmos","cmos",[.6,-.1,.2],[.62,1]);const bat=cyl(.05,.05,.012,SM("#d8dde4",{metalness:.95,roughness:.2}),40);bat.rotation.z=Math.PI/2;bat.position.set(-.488,1.25,-.32);CM.add(bat);
+ /* процессор */
+ const CPU=part("cpu","cpu",[1.05,.3,0],[.45,.9]);const sub=rbox(.008,.24,.24,SM("#2e6b45",{roughness:.6}),.004);sub.position.set(-.478,1.88,-.55);CPU.add(sub);
+ const ihs=rbox(.016,.19,.19,SM("#d4d9e0",{metalness:.95,roughness:.2}),.012);ihs.position.set(-.466,1.88,-.55);CPU.add(ihs);
+ const cpuL=labelPlane(.16,.16,(x,W,H)=>{x.fillStyle="#3a4457";x.textAlign="center";x.font=`800 ${H*.17}px Montserrat`;x.fillText("CPU",W/2,H*.42);x.font=`500 ${H*.09}px 'Noto Sans Mono',monospace`;x.fillText("8 CORES · 5.0 GHz",W/2,H*.62);x.fillText("INF-7  ◆",W/2,H*.76)},{transparent:true});cpuL.position.set(-.4575,1.88,-.55);cpuL.rotation.y=Math.PI/2;CPU.add(cpuL);
+ /* салқындатқыш */
+ const CO=part("cooler","cooler",[1.35,.25,0],[.25,.7]);const cu=SM("#c47a45",{metalness:1,roughness:.28});
+ CO.add(place(rbox(.05,.22,.22,cu,.01),-.432,1.88,-.55));
+ const finG=new THREE.BoxGeometry(.6,.56,.0045),finM=SM("#c9ced6",{metalness:1,roughness:.3});const fins=new THREE.InstancedMesh(finG,finM,40);const mm=new THREE.Matrix4();for(let i=0;i<40;i++){mm.makeTranslation(.06,1.88,-.7+i*.0075);fins.setMatrixAt(i,mm)}fins.castShadow=fins.receiveShadow=true;CO.add(fins);
+ for(let i=0;i<4;i++){const z=-.64+i*.06,y=1.83+(i%2)*.1;const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(-.43,1.88+(i-1.5)*.04,z),new THREE.Vector3(-.3,y,z),new THREE.Vector3(.33,y,z)]);const tp=new THREE.Mesh(new THREE.TubeGeometry(curve,40,.016,12),cu);tp.castShadow=true;CO.add(tp);const tip=cyl(.017,.017,.02,cu,12);tip.rotation.z=Math.PI/2;tip.position.set(.37,y,z);CO.add(tip)}
+ const capT=new THREE.Group();capT.add(rbox(.035,.58,.34,SM("#1f242c",{metalness:.7,roughness:.3}),.02));capT.add(place(labelPlane(.3,.08,(x,W,H)=>{x.fillStyle="#c9a25a";x.font=`800 ${H*.6}px Montserrat`;x.textAlign="center";x.textBaseline="middle";x.fillText("FROST 120",W/2,H/2)}),.0185,0,0,0,Math.PI/2,0));capT.position.set(.38,1.88,-.55);CO.add(capT);
+ const cfan=mkPcFan(.58,rgb());cfan.position.set(.06,1.88,-.36);CO.add(cfan);
+ /* жедел жад */
+ const RAM=part("ram","ram",[1.0,.35,0],[.3,.72]);
+ for(const z of[-.14,-.02]){const st=new THREE.Group();st.add(rbox(.16,.66,.012,SM("#24563c"),.004));const hs=SM("#262b34",{metalness:.8,roughness:.3});st.add(place(rbox(.17,.67,.008,hs,.004),.005,0,.011),place(rbox(.17,.67,.008,hs,.004),.005,0,-.011));
+  st.add(place(rbox(.03,.64,.03,rgb(),.01),.1,0,0));const l=labelPlane(.12,.5,(x,W,H)=>{x.save();x.translate(W/2,H/2);x.rotate(-Math.PI/2);x.fillStyle="#c9a25a";x.font=`800 ${W*.28}px Montserrat`;x.textAlign="center";x.textBaseline="middle";x.fillText("DDR5 16GB",0,-W*.12);x.fillStyle="#aab3c2";x.font=`500 ${W*.16}px 'Noto Sans Mono'`;x.fillText("6000 MT/s",0,W*.2);x.restore()});l.position.set(.01,0,.0161);st.add(l);
+  st.position.set(-.39,1.85,z);RAM.add(st)}
+ /* бейнекарта */
+ const GPU=part("gpu","gpu",[1.3,-.35,.25],[.28,.75]);const shroud=SM("#2b3039",{metalness:.6,roughness:.35});
+ GPU.add(place(rbox(.58,.12,1.42,shroud,.03),-.17,1.25,-.33));
+ GPU.add(place(rbox(.58,.012,1.42,SM("#1c2027",{metalness:.85,roughness:.3}),.004),-.17,1.318,-.33));
+ const bpL=labelPlane(.5,.12,(x,W,H)=>{x.fillStyle="#c9a25a";x.font=`800 ${H*.55}px Montserrat`;x.textAlign="center";x.textBaseline="middle";x.fillText("GEFORCE · INF 7",W/2,H/2)});bpL.rotation.set(-Math.PI/2,0,-Math.PI/2);bpL.position.set(-.17,1.3255,-.2);GPU.add(bpL);
+ for(let i=0;i<30;i++)GPU.add(place(new THREE.Mesh(new THREE.BoxGeometry(.5,.06,.004),finM),-.17,1.17,-.98+i*.045));
+ GPU.add(place(rbox(.012,.022,1.3,rgb(),.004),.125,1.29,-.33));
+ const gfans=[];for(const z of[-.8,-.33,.14]){const f=mkPcFan(.42,null);f.rotation.x=Math.PI/2;f.position.set(-.17,1.17,z);GPU.add(f);gfans.push(f)}
+ GPU.add(place(rbox(.6,.24,.018,SM("#cfd5de",{metalness:.95,roughness:.25}),.004),-.2,1.27,-1.085));
+ GPU.add(place(rbox(.07,.03,.1,SM("#1a1d23"),.006),.0,1.33,.2));
+ GPU.add(place(rbox(.02,.03,.38,accent,.004),-.48,1.4,-.62));
+ /* NVMe */
+ const NV=part("nvme","nvme",[.85,.05,.15],[.3,.7]);const nv=new THREE.Group();nv.add(rbox(.02,.11,.42,SM("#1e7a52"),.004));nv.add(place(rbox(.03,.115,.43,SM("#2c3340",{metalness:.85,roughness:.3}),.008),.02,0,0));
+ const nvL=labelPlane(.4,.1,(x,W,H)=>{x.fillStyle="#c9a25a";x.font=`800 ${H*.42}px Montserrat`;x.textAlign="center";x.textBaseline="middle";x.fillText("NVMe M.2 · 1 TB",W/2,H/2)});nvL.position.set(.0355,0,0);nvL.rotation.y=Math.PI/2;nv.add(nvL);nv.position.set(-.465,1.64,-.5);NV.add(nv);
+ /* PSU */
+ const PSU=part("psu","psu",[1.45,0,-.2],[.3,.75]);const psuM=SM("#1b1e24",{metalness:.4,roughness:.55});
+ PSU.add(place(rbox(.75,.43,.8,psuM,.02),-.1,.235,-.68));
+ const grill=new THREE.Mesh(new THREE.CircleGeometry(.3,48),meshM(1,1));grill.rotation.x=Math.PI/2;grill.position.set(-.1,.018,-.68);PSU.add(grill);
+ const psuL=labelPlane(.6,.3,(x,W,H)=>{x.fillStyle="#f2efe8";x.fillRect(0,0,W,H);x.fillStyle="#15325f";x.font=`800 ${H*.2}px Montserrat`;x.fillText("750W",W*.06,H*.32);x.font=`700 ${H*.1}px Montserrat`;x.fillStyle="#c9a25a";x.fillText("80 PLUS GOLD",W*.06,H*.5);x.fillStyle="#3a4457";x.font=`500 ${H*.07}px 'Noto Sans Mono'`;["AC IN 220-240V ~ 50Hz","+12V 62A  +5V 20A  +3.3V 20A"].forEach((t,i)=>x.fillText(t,W*.06,H*(.68+i*.12)))},{transparent:false});psuL.position.set(.276,.24,-.68);psuL.rotation.y=Math.PI/2;PSU.add(psuL);
+ for(let i=0;i<3;i++)PSU.add(place(rbox(.12,.08,.02,SM("#2a2f38"),.006),-.3+i*.16,.25,-.276));
+ /* дискілер */
+ const HD=part("hdd","hdd",[1.35,0,.55],[.3,.72]);const hdd=new THREE.Group();hdd.add(rbox(.5,.13,.72,SM("#b6bdc8",{metalness:.9,roughness:.32}),.012));
+ const hdL=labelPlane(.42,.6,(x,W,H)=>{x.fillStyle="#f4f2ee";x.fillRect(0,0,W,H);x.fillStyle="#15325f";x.font=`800 ${W*.14}px Montserrat`;x.fillText("HDD 2 TB",W*.08,H*.15);x.fillStyle="#3a4457";x.font=`500 ${W*.06}px 'Noto Sans Mono'`;["7200 RPM · SATA 6Gb/s","3.5-inch","+5V 0.6A  +12V 0.5A"].forEach((t,i)=>x.fillText(t,W*.08,H*(.28+i*.08)));x.strokeStyle="#c9a25a";x.lineWidth=6;x.strokeRect(W*.08,H*.6,W*.84,H*.3);x.fillStyle="#c9a25a";x.font=`700 ${W*.07}px Montserrat`;x.fillText("INFORMATIKA 7",W*.14,H*.78)},{transparent:false});hdL.rotation.x=-Math.PI/2;hdL.position.y=.066;hdd.add(hdL);hdd.position.set(-.05,.09,.62);HD.add(hdd);
+ const SS=part("ssd","ssd",[1.2,.35,.45],[.3,.72]);const ssd=new THREE.Group();ssd.add(rbox(.36,.035,.5,SM("#20242c",{metalness:.5,roughness:.4}),.01));
+ const ssL=labelPlane(.3,.42,(x,W,H)=>{x.fillStyle="#24508f";x.fillRect(0,0,W,H);x.fillStyle="#fff";x.font=`800 ${W*.15}px Montserrat`;x.fillText("SSD",W*.1,H*.3);x.font=`600 ${W*.07}px Montserrat`;x.fillText("SATA · 512 GB",W*.1,H*.45);x.fillStyle="#c9a25a";x.fillRect(W*.1,H*.6,W*.8,6)},{transparent:false});ssL.rotation.x=-Math.PI/2;ssL.position.y=.0185;ssd.add(ssL);ssd.position.set(.15,.597,.75);SS.add(ssd);
+ /* желдеткіштер */
+ const FF=part("fans","fans",[0,0,1.05],[.1,.4]);const fanObjs=[];for(const y of[.86,1.44,2.02]){const f=mkPcFan(.56,rgb());f.position.set(0,y,1.06);FF.add(f);fanObjs.push(f)}
+ const RF=part("fans","fans",[0,0,-.9],[.1,.4]);const rf=mkPcFan(.56,rgb());rf.position.set(0,1.95,-1.07);RF.add(rf);fanObjs.push(rf);
+ /* кабельдер */
+ const CB=part("cables","cables",[.9,0,0],[.08,.3]);const sleeve=txtTex(64,256,(x,W,H)=>{for(let i=0;i<32;i++){x.fillStyle=i%2?"#1b1f27":"#3a4252";x.fillRect(0,i*8,W,8)}x.globalAlpha=.25;x.fillStyle="#c9a25a";for(let i=0;i<256;i+=16)x.fillRect(0,i,W,2)});sleeve.wrapS=sleeve.wrapT=THREE.RepeatWrapping;sleeve.repeat.set(1,8);
+ const cab=(pts,r)=>{const m=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p))),60,r,14),new THREE.MeshStandardMaterial({map:sleeve,roughness:.7,metalness:.1}));m.castShadow=true;CB.add(m)};
+ cab([[-.25,.56,.38],[-.28,1.0,.36],[-.35,1.5,.3],[-.42,1.75,.2]],.04);
+ cab([[-.3,.56,-1.0],[-.38,1.2,-1.03],[-.42,2.0,-1.02],[-.43,2.22,-.86]],.022);
+ cab([[-.05,.56,.28],[-.02,.95,.3],[0,1.22,.28],[0,1.34,.2]],.03);
+ return{root,parts,rgbMats,fans:[cfan,...gfans,...fanObjs]}}
+
+function initPcLab(){
+ const host=$("#pclab");if(!host)return;let started=false;
+ const io=new IntersectionObserver(es=>{if(es[0].isIntersecting&&!started){started=true;io.disconnect();try{startPcLab(host)}catch(e){console.error(e);host.querySelector(".lab-load").textContent="3D сахна ашылмады. Бетті жаңартып көріңіз."}}},{rootMargin:"300px"});io.observe(host)}
+function startPcLab(host){
+ const r=new THREE.WebGLRenderer({antialias:true});r.setPixelRatio(Math.min(devicePixelRatio,2));r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.05;
+ host.prepend(r.domElement);
+ const s=new THREE.Scene();const pm=new THREE.PMREMGenerator(r);s.environment=pm.fromScene(new RoomEnvironment(),.04).texture;pm.dispose();
+ s.background=gradBg("#ffffff","#e9e6f4");
+ s.add(new THREE.HemisphereLight(0xffffff,0x9aa3b8,.5));const d=new THREE.DirectionalLight(0xffffff,2.2);d.position.set(5,8,4);d.castShadow=true;d.shadow.mapSize.set(2048,2048);const sc=d.shadow.camera;sc.left=sc.bottom=-4;sc.right=sc.top=4;d.shadow.bias=-.0004;d.shadow.normalBias=.02;s.add(d);
+ const fill=new THREE.DirectionalLight(0xdfe6ff,.8);fill.position.set(-4,3,-3);s.add(fill);
+ const inner=new THREE.PointLight(0xbfd6ff,4,3.5);inner.position.set(.2,1.6,.2);s.add(inner);
+ const floor=new THREE.Mesh(new THREE.CircleGeometry(9,96),new THREE.MeshStandardMaterial({color:"#ece8f3",roughness:.95,alphaMap:groundAlpha,transparent:true,depthWrite:false}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;floor.position.y=-.04;s.add(floor);
+ const cam=new THREE.PerspectiveCamera(36,1,.05,60);cam.position.set(3.6,2.3,3.1);
+ const ctl=new OrbitControls(cam,r.domElement);ctl.target.set(0,1.1,0);ctl.enableDamping=true;ctl.minDistance=1.2;ctl.maxDistance=11;ctl.maxPolarAngle=Math.PI*.52;ctl.enablePan=true;ctl.screenSpacePanning=true;
+ const post=makeComposer(r,cam,{radius:.35,k:.9});if(post)post.setScene(s);
+ const PC=buildPC();s.add(PC.root);
+ /* ауа ағыны */
+ const N=260,pos=new Float32Array(N*3),col=new Float32Array(N*3);const seeds=[];for(let i=0;i<N;i++){seeds.push([(Math.random()-.5)*.8,.7+Math.random()*1.55,Math.random()]);}
+ const pg=new THREE.BufferGeometry();pg.setAttribute("position",new THREE.BufferAttribute(pos,3));pg.setAttribute("color",new THREE.BufferAttribute(col,3));
+ const dot=txtTex(64,64,(x,W,H)=>{const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,"rgba(255,255,255,1)");g.addColorStop(1,"rgba(255,255,255,0)");x.fillStyle=g;x.fillRect(0,0,64,64)});
+ const air=new THREE.Points(pg,new THREE.PointsMaterial({size:.07,map:dot,vertexColors:true,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));air.visible=false;s.add(air);
+ const cold=new THREE.Color("#4fa3ff"),hot=new THREE.Color("#ff6a4a"),tmp=new THREE.Color();
+ /* UI */
+ const panel=$("#labPanel"),tip=host.querySelector(".lab-tip"),ld=host.querySelector(".lab-load");ld.remove();
+ const info=$("#labInfo"),chips=$("#labParts"),slider=$("#labExplode");
+ PC_ORDER.forEach(k=>{if(!PC.parts[k])return;const b=el("button","lab-chip",PC_INFO[k].n.replace(/ \(.*\)/,""));b.dataset.k=k;b.type="button";b.onclick=()=>select(k,true);chips.appendChild(b)});
+ const pick=[];PC.root.traverse(o=>{if(o.isMesh||o.isInstancedMesh)pick.push(o)});
+ const partOf=o=>{while(o&&!o.userData.part)o=o.parent;return o?o.userData.part:null};
+ const box=new THREE.Box3Helper(new THREE.Box3(),0xc9a25a);box.visible=false;s.add(box);
+ let sel=null,explode=0,target=0,game=null;
+ function hilite(k){box.visible=!!k;if(!k)return;const b=new THREE.Box3();PC.parts[k].forEach(g=>b.expandByObject(g));b.expandByScalar(.02);box.box.copy(b)}
+ function select(k,fly){sel=k;hilite(k);chips.querySelectorAll(".lab-chip").forEach(c=>c.classList.toggle("on",c.dataset.k===k));
+  if(game){checkGame(k);return}
+  const I=PC_INFO[k];info.innerHTML=`<span class="eyebrow">Бөлшек</span><h3>${I.n}</h3><p>${I.d}</p><p class="fact"><b>Білесің бе?</b> ${I.f}</p>`;
+  if(fly&&k!=="case"){const b=new THREE.Box3();PC.parts[k].forEach(g=>b.expandByObject(g));const c=b.getCenter(new THREE.Vector3());flyTo(c)}}
+ let fly=null;function flyTo(c){const dir=cam.position.clone().sub(ctl.target).normalize();const dist=Math.max(1.8,Math.min(4,cam.position.distanceTo(ctl.target)));fly={t0:ctl.target.clone(),t1:c,p0:cam.position.clone(),p1:c.clone().add(dir.multiplyScalar(dist)),k:0}}
+ /* меңзер */
+ const ray=new THREE.Raycaster(),mp=new THREE.Vector2();let down=null;
+ const hit=e=>{const rc=r.domElement.getBoundingClientRect();mp.set((e.clientX-rc.left)/rc.width*2-1,-(e.clientY-rc.top)/rc.height*2+1);ray.setFromCamera(mp,cam);const hs=ray.intersectObjects(pick,false);for(const h of hs){const k=partOf(h.object);if(!k)continue;if(k==="glass"&&PC.parts.glass[0].visible&&explode<.2&&glassOn)continue;if(k==="case"&&hs.length>1)continue;return k}return hs.length?partOf(hs[0].object):null};
+ r.domElement.addEventListener("pointerdown",e=>{down=[e.clientX,e.clientY]});
+ r.domElement.addEventListener("pointerup",e=>{if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])<6){const k=hit(e);if(k)select(k,false)}down=null});
+ r.domElement.addEventListener("pointermove",e=>{if(e.pointerType!=="mouse")return;const k=hit(e);if(k&&!game){tip.textContent=PC_INFO[k].n;tip.style.transform=`translate(${e.offsetX+14}px,${e.offsetY+14}px)`;tip.classList.add("on");r.domElement.style.cursor="pointer"}else{tip.classList.remove("on");r.domElement.style.cursor=""}});
+ r.domElement.addEventListener("pointerleave",()=>tip.classList.remove("on"));
+ /* басқару */
+ const sval=$("#labExplodeVal");slider.oninput=()=>{target=explode=+slider.value/100;sval.textContent=slider.value+"%"};
+ $("#labOpen").onclick=()=>{target=1;fly={t0:ctl.target.clone(),t1:new THREE.Vector3(.5,1.1,0),p0:cam.position.clone(),p1:new THREE.Vector3(5.6,3.1,4.4).sub(new THREE.Vector3(.5,1.1,0)).multiplyScalar(Math.pow(Math.max(1,1.45/cam.aspect),.75)).add(new THREE.Vector3(.5,1.1,0)),k:0}};$("#labClose").onclick=()=>{target=0;$("#labReset").click()};
+ let glassOn=true;$("#labGlass").onclick=e=>{glassOn=!glassOn;PC.parts.glass[0].visible=glassOn;e.currentTarget.classList.toggle("on",!glassOn);e.currentTarget.textContent=glassOn?"Шыны панельді алу":"Шыны панельді қою"};
+ let spin=true;$("#labFans").onclick=e=>{spin=!spin;e.currentTarget.classList.toggle("on",!spin);e.currentTarget.textContent=spin?"Желдеткішті тоқтату":"Желдеткішті қосу"};
+ $("#labAir").onclick=e=>{air.visible=!air.visible;e.currentTarget.classList.toggle("on",air.visible)};
+ const modes=["rainbow","#5aa0ff","#c9a25a","off"];let mode=0;$("#labRgb").onclick=e=>{mode=(mode+1)%modes.length;e.currentTarget.textContent=["RGB: кемпірқосақ","RGB: көк","RGB: алтын","RGB: өшірулі"][mode]};
+ $("#labReset").onclick=()=>{fly={t0:ctl.target.clone(),t1:new THREE.Vector3(0,1.1,0),p0:cam.position.clone(),p1:home(),k:0}};
+ /* ойын */
+ const gbox=$("#labGame");
+ $("#labGameBtn").onclick=()=>{const pool=["mb","cpu","cooler","ram","gpu","psu","nvme","ssd","hdd","fans","cables","cmos","io"].sort(()=>Math.random()-.5).slice(0,8);game={pool,i:0,score:0};target=Math.max(target,.55);nextQ()};
+ function nextQ(){if(game.i>=game.pool.length){gbox.innerHTML=`<b>Ойын аяқталды!</b> Нәтиже: ${game.score} / ${game.pool.length}. <button class="lab-btn" id="labGameAgain" type="button">Қайта ойнау</button>`;$("#labGameAgain").onclick=()=>$("#labGameBtn").click();game=null;return}
+  gbox.innerHTML=`<span class="eyebrow">Сұрақ ${game.i+1} / ${game.pool.length} · Ұпай: ${game.score}</span><div class="q">Сахнадан тап: <b>${PC_INFO[game.pool[game.i]].n}</b></div>`}
+ function checkGame(k){const want=game.pool[game.i];const ok=k===want;gbox.insertAdjacentHTML("beforeend",`<div class="${ok?"ok":"bad"}">${ok?"Дұрыс!":"Бұл — "+PC_INFO[k].n+". Дұрыс жауабы көрсетілді."}</div>`);if(ok)game.score++;else hilite(want);game.i++;setTimeout(()=>{if(game)nextQ()},1300)}
+ /* цикл */
+ const clk=new THREE.Clock();let vis=true;new IntersectionObserver(e=>vis=e[0].isIntersecting).observe(host);
+ const home=()=>{const k=Math.pow(Math.max(1,1.45/cam.aspect),.75);return new THREE.Vector3(3.6,2.3,3.1).sub(new THREE.Vector3(0,1.1,0)).multiplyScalar(k).add(new THREE.Vector3(0,1.1,0))};let first=true;
+ const rs=()=>{const W=host.clientWidth,H=host.clientHeight;r.setSize(W,H);if(post)post.setSize(W,H);cam.aspect=W/H;cam.updateProjectionMatrix();if(first&&W){first=false;cam.position.copy(home())}};new ResizeObserver(rs).observe(host);rs();
+ const ss=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)};let tt=0;
+ const cableParts=PC.parts.cables;
+ (function loop(){requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.05);if(!vis)return;tt+=dt;
+  if(Math.abs(target-explode)>.001){explode+=(target-explode)*Math.min(1,dt*3);slider.value=Math.round(explode*100);sval.textContent=slider.value+"%"}
+  for(const k in PC.parts)PC.parts[k].forEach(g=>{const u=g.userData;const f=ss(u.stage[0],u.stage[1],explode);g.position.copy(u.base).addScaledVector(u.delta,f)});
+  cableParts.forEach(g=>{const v=1-ss(.02,.18,explode);g.scale.setScalar(Math.max(.001,v));g.visible=v>.01});
+  if(sel)hilite(sel);
+  if(spin)PC.fans.forEach((f,i)=>f.userData.rotor.rotation.z-=dt*(i<4?14:18));
+  const m=modes[mode];PC.rgbMats.forEach((mat,i)=>{if(m==="off"){mat.emissiveIntensity=0}else{mat.emissiveIntensity=1.3;if(m==="rainbow")mat.emissive.setHSL((tt*.08+i*.09)%1,.9,.5);else mat.emissive.set(m)}});
+  if(air.visible){for(let i=0;i<N;i++){const sd=seeds[i];const z=1.05-((sd[2]+tt*.25)%1)*2.15;pos[i*3]=sd[0]+Math.sin(tt*2+i)*.02;pos[i*3+1]=sd[1]+Math.sin(z*3+i)*.03;pos[i*3+2]=z;tmp.copy(cold).lerp(hot,Math.min(1,Math.max(0,(1-z)/1.8)));col.set([tmp.r,tmp.g,tmp.b],i*3)}pg.attributes.position.needsUpdate=true;pg.attributes.color.needsUpdate=true}
+  if(fly){fly.k=Math.min(1,fly.k+dt/.9);const e=fly.k<.5?2*fly.k*fly.k:1-Math.pow(-2*fly.k+2,2)/2;ctl.target.lerpVectors(fly.t0,fly.t1,e);cam.position.lerpVectors(fly.p0,fly.p1,e);if(fly.k>=1)fly=null}
+  ctl.update();if(post)post.c.render(dt);else r.render(s,cam)})();
+ select("mb",false);
+}
+try{initPcLab()}catch(e){console.error(e)}
