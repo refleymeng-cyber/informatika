@@ -258,12 +258,12 @@ function fmtAns(a){if(a==="2^10")return"2¹⁰ (1024)";if(/^\d{5,}$/.test(a)&&a.
 
 /* ================== 3D ҚОЗҒАЛТҚЫШ (three.js r160) ================== */
 const V3=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
-const MAT=(c,o)=>new THREE.MeshPhysicalMaterial(Object.assign({color:c,roughness:.5,metalness:.05,clearcoat:.15,clearcoatRoughness:.4},o||{}));
+const MAT=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.5,metalness:.05},o||{}));
 /* сапалы рендер: MSAA + GTAO (көлеңкелі бұрыштар) — қуатты құрылғыларда */
 const HQ=!matchMedia("(pointer: coarse)").matches&&(navigator.hardwareConcurrency||4)>=4;
 function makeComposer(r,camera,ao){if(!HQ)return null;try{const rt=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:4});const c=new EffectComposer(r,rt);const rp=new RenderPass(null,camera);c.addPass(rp);let g=null;
- if(ao){g=new GTAOPass(null,camera,1,1);g.updateGtaoMaterial({radius:ao.radius||.4,distanceExponent:1,thickness:1,scale:1,samples:16,distanceFallOff:1});g.updatePdMaterial({lumaPhi:10,depthPhi:2,normalPhi:3,radius:6,rings:2,samples:16});g.blendIntensity=ao.k||.9;c.addPass(g)}
- c.addPass(new OutputPass());return{c,setScene(s){rp.scene=s;if(g)g.scene=s},setSize(w,h){c.setPixelRatio(Math.min(devicePixelRatio,1.5));c.setSize(w,h)}}}catch(e){console.warn(e);return null}}
+ if(ao){g=new GTAOPass(null,camera,1,1);g.updateGtaoMaterial({radius:ao.radius||.4,distanceExponent:1,thickness:1,scale:1,samples:8,distanceFallOff:1});g.updatePdMaterial({lumaPhi:10,depthPhi:2,normalPhi:3,radius:4,rings:2,samples:8});g.blendIntensity=ao.k||.9;c.addPass(g)}
+ c.addPass(new OutputPass());return{c,setScene(s){rp.scene=s;if(g)g.scene=s},setSize(w,h){c.setPixelRatio(1);c.setSize(w,h)},off(){this.disabled=true}}}catch(e){console.warn(e);return null}}
 function gradBg(top,bottom){const c=document.createElement("canvas");c.width=4;c.height=512;const x=c.getContext("2d");const g=x.createLinearGradient(0,0,0,512);g.addColorStop(0,top);g.addColorStop(.62,bottom);g.addColorStop(1,bottom);x.fillStyle=g;x.fillRect(0,0,4,512);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 const groundAlpha=(()=>{const c=document.createElement("canvas");c.width=c.height=512;const x=c.getContext("2d");const g=x.createRadialGradient(256,256,40,256,256,256);g.addColorStop(0,"#fff");g.addColorStop(.55,"#fff");g.addColorStop(1,"#000");x.fillStyle=g;x.fillRect(0,0,512,512);return new THREE.CanvasTexture(c)})();
 const PHY=(c,o)=>new THREE.MeshPhysicalMaterial(Object.assign({color:c,roughness:.35,metalness:0,clearcoat:.6,clearcoatRoughness:.25},o||{}));
@@ -297,7 +297,7 @@ class Viewer{
   const w=el("div","v3",`<div class="v3-stage" style="height:${cfg.h||340}px"><div class="v3-labels"></div><div class="v3-cap"></div><div class="v3-hint">Сүйреп айналдырыңыз · жақындату — дөңгелекпен</div>${multi?'<button class="v3-nav prev" aria-label="Алдыңғы модель"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><button class="v3-nav next" aria-label="Келесі модель"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button><div class="v3-count"></div>':""}<div class="v3-frame"></div><div class="v3-load"><i></i>3D модель жүктелуде…</div></div><div class="v3-tools"></div>`);
   host.appendChild(w);this.el=w;this.stage=$(".v3-stage",w);this.lab=$(".v3-labels",w);this.tools=$(".v3-tools",w);this.cap=$(".v3-cap",w);this.cnt=$(".v3-count",w);this.ld=$(".v3-load",w);
   if(multi){$(".prev",w).onclick=()=>this.show(this.idx-1,true);$(".next",w).onclick=()=>this.show(this.idx+1,true)}
-  const r=this.renderer=new THREE.WebGLRenderer({antialias:true});r.setPixelRatio(Math.min(devicePixelRatio,2));r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;
+  const r=this.renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});r.setPixelRatio(Math.min(devicePixelRatio,1.5));r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;
   r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.05;
   this.stage.prepend(r.domElement);
   this.camera0=new THREE.PerspectiveCamera(40,1,.05,300);this.post=makeComposer(r,this.camera0,{radius:.45,k:.9});
@@ -347,7 +347,8 @@ class Viewer{
   for(const m of this.mixers)m.update(dt);
   if(this.cur.update)this.cur.update(this.t,dt);
   if(this.fly){const f=this.fly;f.k=Math.min(1,f.k+dt/f.dur);const e=f.k<.5?2*f.k*f.k:1-Math.pow(-2*f.k+2,2)/2;this.camera.position.lerpVectors(f.p0,f.p1,e);this.controls.target.lerpVectors(f.t0,f.t1,e);if(f.k>=1)this.fly=null}
-  this.controls.update();if(this.post)this.post.c.render(dt);else this.renderer.render(this.scene,this.camera);
+  this.controls.update();this.perf=(this.perf||0)*.95+dt*.05;if(this.post&&this.perf>.028&&this.t>3){this.post=null}
+  if(this.post)this.post.c.render(dt);else this.renderer.render(this.scene,this.camera);
   const W=this.stage.clientWidth,H=this.stage.clientHeight;
   for(const L of this.labels){if(!L.obj.visible||!L.obj.parent){L.d.style.display="none";continue}L.obj.getWorldPosition(this.v);this.v.y+=L.dy;this.v.project(this.camera);
    if(this.v.z>1){L.d.style.display="none";continue}L.d.style.display="";L.d.style.transform=`translate(${(this.v.x*.5+.5)*W}px,${(-this.v.y*.5+.5)*H}px) translate(-50%,-100%)`}
@@ -682,7 +683,7 @@ function initHero(){
  const dots=[];for(let i=0;i<3;i++){const dd=new THREE.Mesh(new THREE.SphereGeometry(.06,16,12),MAT(["#24508f","#7b5bd6","#c9a25a"][i],{roughness:.25,metalness:.3}));root.add(dd);dots.push(dd)}
  const clk=new THREE.Clock();let vis=true,tt=0,lastDraw=0;
  new IntersectionObserver(e=>vis=e[0].isIntersecting).observe(host);
- const post=makeComposer(r,cam,{radius:.3,k:.8});if(post)post.setScene(s);
+ let post=makeComposer(r,cam,{radius:.3,k:.8});if(post)post.setScene(s);let perf=0;
  const home=()=>{const k=Math.pow(Math.max(1,1.45/cam.aspect),.75);return new THREE.Vector3(3.6,2.3,3.1).sub(new THREE.Vector3(0,1.1,0)).multiplyScalar(k).add(new THREE.Vector3(0,1.1,0))};let first=true;
  const rs=()=>{const W=host.clientWidth,H=host.clientHeight;r.setSize(W,H);if(post)post.setSize(W,H);cam.aspect=W/H;cam.updateProjectionMatrix();if(first&&W){first=false;cam.position.copy(home())}};new ResizeObserver(rs).observe(host);rs();
  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -691,7 +692,7 @@ function initHero(){
   bits.forEach(b=>{b.position.y=b.userData.y+Math.sin(tt*1.2+b.userData.ph)*.12;b.rotation.y=tt*.5+b.userData.ph;b.rotation.x=Math.sin(tt*.7+b.userData.ph)*.3});
   root.rotation.y=Math.sin(tt*.35)*.22;chip.position.y=1.6+Math.sin(tt*1.1)*.08;chip.rotation.y=.4+Math.sin(tt*.5)*.25;
   dots.forEach((dd,i)=>{const a=tt*.6+i*2.1;dd.position.set(Math.cos(a)*2,.07,Math.sin(a)*2)});
-  ctl.update();if(post)post.c.render(dt);else r.render(s,cam)})();
+  ctl.update();perf=perf*.95+dt*.05;if(post&&perf>.028&&tt>3)post=null;if(post)post.c.render(dt);else r.render(s,cam)})();
 }
 try{initHero()}catch(e){console.error(e)}
 
@@ -742,7 +743,7 @@ const PC_ORDER=["case","glass","mb","cpu","cooler","ram","gpu","psu","nvme","ssd
 
 function txtTex(w,h,draw){const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");draw(x,w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t}
 function labelPlane(w,h,draw,opts){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial(Object.assign({map:txtTex(Math.round(512*w/Math.max(w,h)),Math.round(512*h/Math.max(w,h)),draw),transparent:true,roughness:.6,metalness:.1},opts||{})));return m}
-const SM=(c,o)=>new THREE.MeshPhysicalMaterial(Object.assign({color:c,roughness:.45,metalness:.2,clearcoat:.2,clearcoatRoughness:.4},o||{}));
+const SM=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.45,metalness:.2},o||{}));
 function rbox(w,h,d,mat,r){const m=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,r??Math.min(w,h,d)*.15),mat);m.castShadow=m.receiveShadow=true;return m}
 function cyl(r1,r2,h,mat,seg){const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg||32),mat);m.castShadow=m.receiveShadow=true;return m}
 function place(m,x,y,z,rx,ry,rz){m.position.set(x,y,z);if(rx||ry||rz)m.rotation.set(rx||0,ry||0,rz||0);return m}
@@ -757,7 +758,7 @@ function mkPcFan(size,ringMats){const g=new THREE.Group();const s=size,half=s/2,
  const cap=new THREE.Mesh(new THREE.CircleGeometry(s*.13,40),SM("#2a2f39",{metalness:.6,roughness:.3}));cap.position.z=s*.081;rotor.add(cap);
  const bladeShape=new THREE.Shape();bladeShape.moveTo(0,-s*.06);bladeShape.quadraticCurveTo(s*.2,-s*.1,s*.33,-s*.02);bladeShape.quadraticCurveTo(s*.3,s*.08,s*.18,s*.09);bladeShape.quadraticCurveTo(s*.08,s*.08,0,s*.05);bladeShape.closePath();
  const bg=new THREE.ExtrudeGeometry(bladeShape,{depth:.004,bevelEnabled:false,curveSegments:16});
- const bm=new THREE.MeshPhysicalMaterial({color:"#e8eef8",roughness:.35,transmission:.35,thickness:.01,transparent:true,opacity:.95});
+ const bm=new THREE.MeshStandardMaterial({color:"#e8eef8",roughness:.35,metalness:.05,side:THREE.DoubleSide});
  for(let i=0;i<7;i++){const piv=new THREE.Group();const b=new THREE.Mesh(bg,bm);b.position.x=s*.12;b.rotation.x=.45;b.castShadow=true;piv.add(b);piv.rotation.z=i/7*Math.PI*2;rotor.add(piv)}
  g.add(rotor);
  if(ringMats){const ring=new THREE.Mesh(new THREE.TorusGeometry(rad*.985,s*.012,10,96),ringMats);ring.position.z=s*.1;g.add(ring);const ring2=ring.clone();ring2.position.z=-s*.1;g.add(ring2)}
@@ -800,7 +801,7 @@ function buildPC(){
  CASE.add(place(rbox(1.04,.025,1.3,shM,.008),0,.565,.45),place(rbox(.025,.55,1.3,shM,.008),.5,.29,.45));
  const shLogo=labelPlane(.6,.12,(x,W,H)=>{x.fillStyle="#c9a25a";x.font=`800 ${H*.6}px Montserrat,sans-serif`;x.textAlign="center";x.textBaseline="middle";x.fillText("INFORMATIKA 7",W/2,H/2)});shLogo.position.set(.514,.32,.5);shLogo.rotation.y=Math.PI/2;CASE.add(shLogo);
  /* шыны */
- const glass=new THREE.Mesh(new RoundedBoxGeometry(.02,2.3,2.2,2,.008),new THREE.MeshPhysicalMaterial({color:"#cfe3ff",metalness:0,roughness:.04,transmission:.92,thickness:.02,ior:1.5,transparent:true,opacity:.35,envMapIntensity:1.2}));
+ const glass=new THREE.Mesh(new RoundedBoxGeometry(.02,2.3,2.2,2,.008),new THREE.MeshStandardMaterial({color:"#dbe8ff",metalness:.1,roughness:.05,transparent:true,opacity:.16,depthWrite:false,envMapIntensity:1.5}));;
  glass.position.set(.56,1.18,0);const GL=part("glass","glass",[1.4,0,0],[0,.25],new THREE.Group());GL.add(glass);
  /* аналық тақта */
  const MB=part("mb","mb",[.55,0,0],[.62,1]);
@@ -877,17 +878,17 @@ function initPcLab(){
  const host=$("#pclab");if(!host)return;let started=false;
  const io=new IntersectionObserver(es=>{if(es[0].isIntersecting&&!started){started=true;io.disconnect();try{startPcLab(host)}catch(e){console.error(e);host.querySelector(".lab-load").textContent="3D сахна ашылмады. Бетті жаңартып көріңіз."}}},{rootMargin:"300px"});io.observe(host)}
 function startPcLab(host){
- const r=new THREE.WebGLRenderer({antialias:true});r.setPixelRatio(Math.min(devicePixelRatio,2));r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.05;
+ const r=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});r.setPixelRatio(Math.min(devicePixelRatio,1.5));r.shadowMap.enabled=true;r.shadowMap.autoUpdate=false;r.shadowMap.needsUpdate=true;r.shadowMap.type=THREE.PCFSoftShadowMap;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.05;
  host.prepend(r.domElement);
  const s=new THREE.Scene();const pm=new THREE.PMREMGenerator(r);s.environment=pm.fromScene(new RoomEnvironment(),.04).texture;pm.dispose();
  s.background=gradBg("#ffffff","#e9e6f4");
- s.add(new THREE.HemisphereLight(0xffffff,0x9aa3b8,.5));const d=new THREE.DirectionalLight(0xffffff,2.2);d.position.set(5,8,4);d.castShadow=true;d.shadow.mapSize.set(2048,2048);const sc=d.shadow.camera;sc.left=sc.bottom=-4;sc.right=sc.top=4;d.shadow.bias=-.0004;d.shadow.normalBias=.02;s.add(d);
+ s.add(new THREE.HemisphereLight(0xffffff,0x9aa3b8,.5));const d=new THREE.DirectionalLight(0xffffff,2.2);d.position.set(5,8,4);d.castShadow=true;d.shadow.mapSize.set(1024,1024);const sc=d.shadow.camera;sc.left=sc.bottom=-4;sc.right=sc.top=4;d.shadow.bias=-.0004;d.shadow.normalBias=.02;s.add(d);
  const fill=new THREE.DirectionalLight(0xdfe6ff,.8);fill.position.set(-4,3,-3);s.add(fill);
  const inner=new THREE.PointLight(0xbfd6ff,4,3.5);inner.position.set(.2,1.6,.2);s.add(inner);
  const floor=new THREE.Mesh(new THREE.CircleGeometry(9,96),new THREE.MeshStandardMaterial({color:"#ece8f3",roughness:.95,alphaMap:groundAlpha,transparent:true,depthWrite:false}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;floor.position.y=-.04;s.add(floor);
  const cam=new THREE.PerspectiveCamera(36,1,.05,60);cam.position.set(3.6,2.3,3.1);
  const ctl=new OrbitControls(cam,r.domElement);ctl.target.set(0,1.1,0);ctl.enableDamping=true;ctl.minDistance=1.2;ctl.maxDistance=11;ctl.maxPolarAngle=Math.PI*.52;ctl.enablePan=true;ctl.screenSpacePanning=true;
- const post=makeComposer(r,cam,{radius:.35,k:.9});if(post)post.setScene(s);
+ let post=makeComposer(r,cam,{radius:.35,k:.9});if(post)post.setScene(s);let perf=0,lastHover=0;
  const PC=buildPC();s.add(PC.root);
  /* ауа ағыны */
  const N=260,pos=new Float32Array(N*3),col=new Float32Array(N*3);const seeds=[];for(let i=0;i<N;i++){seeds.push([(Math.random()-.5)*.8,.7+Math.random()*1.55,Math.random()]);}
@@ -924,7 +925,7 @@ function startPcLab(host){
  function endDrag(){const d=drag;drag=null;ctl.enabled=true;return d}
  r.domElement.addEventListener("pointerdown",e=>{down=[e.clientX,e.clientY];if(e.button!==0||game)return;const h=hitAt(e.clientX,e.clientY);if(h&&h.k!=="case"){beginDrag(h);try{r.domElement.setPointerCapture(e.pointerId)}catch(_){}select(h.k,false)}},{capture:true});
  r.domElement.addEventListener("pointerup",e=>{if(drag){endDrag();down=null;return}if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])<6){const k=hit(e);if(k)select(k,false)}down=null});
- r.domElement.addEventListener("pointermove",e=>{if(drag){moveDrag(e.clientX,e.clientY);return}if(e.pointerType!=="mouse")return;const k=hit(e);if(k&&!game){tip.textContent=PC_INFO[k].n+(k!=="case"?" · сүйреп жылжытыңыз":"");tip.style.transform=`translate(${e.offsetX+14}px,${e.offsetY+14}px)`;tip.classList.add("on");r.domElement.style.cursor=k!=="case"?"grab":"pointer"}else{tip.classList.remove("on");r.domElement.style.cursor=""}});
+ r.domElement.addEventListener("pointermove",e=>{if(drag){moveDrag(e.clientX,e.clientY);return}if(e.pointerType!=="mouse")return;const now=performance.now();if(now-lastHover<70)return;lastHover=now;const k=hit(e);if(k&&!game){tip.textContent=PC_INFO[k].n+(k!=="case"?" · сүйреп жылжытыңыз":"");tip.style.transform=`translate(${e.offsetX+14}px,${e.offsetY+14}px)`;tip.classList.add("on");r.domElement.style.cursor=k!=="case"?"grab":"pointer"}else{tip.classList.remove("on");r.domElement.style.cursor=""}});
  r.domElement.addEventListener("pointerleave",()=>tip.classList.remove("on"));
  let resetting=false;$("#labPlace").onclick=()=>{resetting=true};
  /* жеке қарау */
@@ -961,7 +962,9 @@ function startPcLab(host){
   const m=modes[mode];PC.rgbMats.forEach((mat,i)=>{if(m==="off"){mat.emissiveIntensity=0}else{mat.emissiveIntensity=1.3;if(m==="rainbow")mat.emissive.setHSL((tt*.08+i*.09)%1,.9,.5);else mat.emissive.set(m)}});
   if(air.visible){for(let i=0;i<N;i++){const sd=seeds[i];const z=1.05-((sd[2]+tt*.25)%1)*2.15;pos[i*3]=sd[0]+Math.sin(tt*2+i)*.02;pos[i*3+1]=sd[1]+Math.sin(z*3+i)*.03;pos[i*3+2]=z;tmp.copy(cold).lerp(hot,Math.min(1,Math.max(0,(1-z)/1.8)));col.set([tmp.r,tmp.g,tmp.b],i*3)}pg.attributes.position.needsUpdate=true;pg.attributes.color.needsUpdate=true}
   if(fly){fly.k=Math.min(1,fly.k+dt/.9);const e=fly.k<.5?2*fly.k*fly.k:1-Math.pow(-2*fly.k+2,2)/2;ctl.target.lerpVectors(fly.t0,fly.t1,e);cam.position.lerpVectors(fly.p0,fly.p1,e);if(fly.k>=1)fly=null}
-  ctl.update();if(post)post.c.render(dt);else r.render(s,cam)})();
+  if(Math.abs(target-explode)>.001||drag||resetting)r.shadowMap.needsUpdate=true;
+  perf=perf*.95+dt*.05;if(perf>.03&&tt>3){if(post){post=null}else if(r.getPixelRatio()>1){r.setPixelRatio(1);rs()}perf=.02}
+  ctl.update();if(post&&!hand)post.c.render(dt);else r.render(s,cam)})();
  /* толық экран */
  const wrapEl=$("#labWrap"),fsBtns=[...document.querySelectorAll(".lab-fs")];
  const isFull=()=>document.fullscreenElement===wrapEl||wrapEl.classList.contains("lab-full");
@@ -976,13 +979,13 @@ function startPcLab(host){
  async function startHand(){handBtn.disabled=true;hmsg.textContent="Камера қосылуда…";
   try{
    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("nocam");
-   const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:"user"},audio:false});
+   const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:480},height:{ideal:360},frameRate:{ideal:30,max:30},facingMode:"user"},audio:false});
    const vid=camBox.querySelector("video");vid.srcObject=stream;await vid.play();
    hmsg.textContent="Қол тану моделі жүктелуде…";
    const V="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
    const vision=await import(V+"/vision_bundle.mjs");
    const files=await vision.FilesetResolver.forVisionTasks(V+"/wasm");
-   const lm=await vision.HandLandmarker.createFromOptions(files,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numHands:1});
+   const lm=await vision.HandLandmarker.createFromOptions(files,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numHands:1,minHandDetectionConfidence:.5,minTrackingConfidence:.5});
    hand={stream,vid,lm,stop:false,cx:.5,cy:.5,pinch:false,pinchT:0,mode:null,last:null,palmT:0,fistT:0,lastTs:-1};
    camBox.classList.add("on");handBtn.classList.add("on");handBtn.textContent="Қолмен басқаруды өшіру";
    hmsg.innerHTML="Сұқ саусақ — меңзер · <b>шымшу</b> (бас бармақ + сұқ саусақ) — бөлшекті ұстап жылжыту немесе бос жерде көріністі айналдыру · <b>алақанды жаю</b> — бөлшектеу · <b>жұдырық</b> — жинау";
@@ -992,7 +995,7 @@ function startPcLab(host){
   handBtn.disabled=false}
  const cv2=camBox.querySelector("canvas"),c2=cv2.getContext("2d");
  const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
- function handLoop(){if(!hand||hand.stop)return;requestAnimationFrame(handLoop);const H=hand;if(H.vid.readyState<2)return;const ts=performance.now();if(ts<=H.lastTs)return;H.lastTs=ts;
+ function handLoop(){if(!hand||hand.stop)return;requestAnimationFrame(handLoop);const H=hand;if(H.vid.readyState<2)return;const ts=performance.now();if(ts-H.lastTs<50)return;H.lastTs=ts;
   let res;try{res=H.lm.detectForVideo(H.vid,ts)}catch(_){return}
   c2.clearRect(0,0,cv2.width,cv2.height);
   const L=res.landmarks&&res.landmarks[0];if(!L){cursorEl.classList.remove("on");if(H.pinch){H.pinch=false;finishPinch()}return}
@@ -1010,7 +1013,7 @@ function startPcLab(host){
   else if(pinch&&H.pinch){if(H.mode==="drag"&&drag)moveDrag(px,py);else if(H.mode==="rot"){const dx=H.cx-H.last[0],dy=H.cy-H.last[1];H.last=[H.cx,H.cy];const off=cam.position.clone().sub(ctl.target);const sp=new THREE.Spherical().setFromVector3(off);sp.theta-=dx*5;sp.phi=Math.min(ctl.maxPolarAngle,Math.max(.15,sp.phi-dy*4));off.setFromSpherical(sp);cam.position.copy(ctl.target).add(off)}}
   else if(!pinch&&H.pinch){H.pinch=false;finishPinch()}
   if(fist)tip.classList.remove("on");
-  else{const h=hitAt(px,py);if(h&&!game){tip.textContent=PC_INFO[h.k].n;tip.style.transform=`translate(${H.cx*rc.width+16}px,${H.cy*rc.height+16}px)`;tip.classList.add("on")}else tip.classList.remove("on")}
+  else if(ts-(H.hovT||0)>150){H.hovT=ts;const h=hitAt(px,py);if(h&&!game){tip.textContent=PC_INFO[h.k].n;tip.style.transform=`translate(${H.cx*rc.width+16}px,${H.cy*rc.height+16}px)`;tip.classList.add("on")}else tip.classList.remove("on")}
   const dt2=H.prevTs?Math.min(.1,(ts-H.prevTs)/1000):0;H.prevTs=ts;
   if(!pinch&&!fist&&ext>=4){H.palmT+=dt2;cursorEl.dataset.g=H.palmT<.6?"Бөлшектеу…":"";if(H.palmT>=.6&&!H.palmDone){H.palmDone=true;$("#labOpen").click();cursorEl.dataset.g="Бөлшектелді"}}else{H.palmT=0;H.palmDone=false}
   if(fist){H.fistT+=dt2;cursorEl.dataset.g=H.fistT<.6?"Жинау…":"";if(H.fistT>=.6&&!H.fistDone){H.fistDone=true;resetting=true;target=0;if(iso)setIso(null);$("#labReset").click();cursorEl.dataset.g="Жиналды"}}else{H.fistT=0;H.fistDone=false}
